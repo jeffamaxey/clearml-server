@@ -215,7 +215,7 @@ def download_task_log(call, company_id, _):
             if len(log_events) < batch_size:
                 break
 
-    call.result.filename = "task_%s.log" % task_id
+    call.result.filename = f"task_{task_id}.log"
     call.result.content_type = "text/plain"
     call.result.raw_data = generate()
 
@@ -575,10 +575,7 @@ def get_task_plots_v1_7(call, company_id, _):
 def _get_metric_variants_from_request(
     req_metrics: Sequence[ApiMetrics],
 ) -> Optional[MetricVariants]:
-    if not req_metrics:
-        return None
-
-    return {m.metric: m.variants for m in req_metrics}
+    return {m.metric: m.variants for m in req_metrics} if req_metrics else None
 
 
 @endpoint(
@@ -899,7 +896,7 @@ def scalar_metrics_iter_raw(
     )
 
     events = []
-    for iteration in range(0, math.ceil(batch_size / 10_000)):
+    for _ in range(0, math.ceil(batch_size / 10_000)):
         res = event_bll.events_iterator.get_task_events(
             event_type=EventType.metrics_scalar,
             company_id=task.company,

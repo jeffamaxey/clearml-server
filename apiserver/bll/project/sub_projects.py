@@ -18,11 +18,10 @@ def _validate_project_name(project_name: str) -> Tuple[str, str]:
     Remove redundant '/' characters. Ensure that the project name is not empty
     Return the cleaned up project name and location
     """
-    name_parts = list(filter(None, project_name.split(name_separator)))
-    if not name_parts:
+    if name_parts := list(filter(None, project_name.split(name_separator))):
+        return name_separator.join(name_parts), name_separator.join(name_parts[:-1])
+    else:
         raise errors.bad_request.InvalidProjectName(name=project_name)
-
-    return name_separator.join(name_parts), name_separator.join(name_parts[:-1])
 
 
 def _ensure_project(
@@ -168,11 +167,10 @@ def _reposition_project_with_children(
     )
     _save_under_parent(project, parent=parent)
 
-    moved = 1 + _update_subproject_names(
+    return 1 + _update_subproject_names(
         project=project,
         children=children,
         old_name=old_name,
         update_path=True,
         old_path=old_path,
     )
-    return moved

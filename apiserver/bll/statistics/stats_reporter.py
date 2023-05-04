@@ -295,10 +295,8 @@ class WarningFilter(logging.Filter):
         logging.getLogger("urllib3.connectionpool").addFilter(cls())
 
     def filter(self, record):
-        if (
-            record.levelno == logging.WARNING
-            and len(record.args) > 2
-            and record.args[2] == "/stats"
-        ):
-            return False
-        return True
+        return (
+            record.levelno != logging.WARNING
+            or len(record.args) <= 2
+            or record.args[2] != "/stats"
+        )

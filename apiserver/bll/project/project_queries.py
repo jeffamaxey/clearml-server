@@ -33,16 +33,14 @@ class ProjectQueries:
         If passed projects is empty means no project filtering
         """
         if include_subprojects:
-            if not project_ids:
-                return {}
-            project_ids = _ids_with_children(project_ids)
+            if project_ids:
+                project_ids = _ids_with_children(project_ids)
 
+            else:
+                return {}
         if project_ids is None:
             project_ids = [None]
-        if not project_ids:
-            return {}
-
-        return {"project": {"$in": project_ids}}
+        return {"project": {"$in": project_ids}} if project_ids else {}
 
     @staticmethod
     def _get_company_constraint(company_id: str, allow_public: bool = True) -> dict:
@@ -162,14 +160,13 @@ class ProjectQueries:
 
         redis_key = f"hyperparam_values_{company_id}_{'_'.join(project_ids)}_{section}_{name}_{allow_public}"
         last_update = last_updated_task.last_update or datetime.utcnow()
-        cached_res = self._get_cached_param_values(
+        if cached_res := self._get_cached_param_values(
             key=redis_key,
             last_update=last_update,
             allowed_delta_sec=config.get(
                 "services.tasks.hyperparam_values.cache_allowed_outdate_sec", 60
             ),
-        )
-        if cached_res:
+        ):
             return cached_res
 
         max_values = config.get("services.tasks.hyperparam_values.max_count", 100)
@@ -328,10 +325,9 @@ class ProjectQueries:
 
         redis_key = f"modelmetadata_values_{company_id}_{'_'.join(project_ids)}_{key}_{allow_public}"
         last_update = last_updated_model.last_update or datetime.utcnow()
-        cached_res = self._get_cached_param_values(
+        if cached_res := self._get_cached_param_values(
             key=redis_key, last_update=last_update
-        )
-        if cached_res:
+        ):
             return cached_res
 
         max_values = config.get("services.models.metadata_values.max_count", 100)

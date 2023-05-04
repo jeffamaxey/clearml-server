@@ -9,7 +9,9 @@ def get_local_addr():
     try:
         return next(ip for ip in ipaddrlist if ip not in ('127.0.0.1',))
     except StopIteration:
-        raise ValueError('Cannot find non-loopback ip address for this server (received %s)' % ', '.join(ipaddrlist))
+        raise ValueError(
+            f"Cannot find non-loopback ip address for this server (received {', '.join(ipaddrlist)})"
+        )
 
 
 def resolve_addr(addr):
@@ -39,9 +41,9 @@ def parse_return_stack_on_code(codes):
                 assert all(isinstance(x, six.integer_types) for x in subcodes),\
                     "return_stack_on_code/subcode must be list(int)"
             else:
-                raise ValueError("invalid return_stack_on_code/subcode(s): %s" % subcodes)
+                raise ValueError(f"invalid return_stack_on_code/subcode(s): {subcodes}")
         else:
-            raise ValueError("invalid return_stack_on_code/subcode(s): %s" % e)
+            raise ValueError(f"invalid return_stack_on_code/subcode(s): {e}")
         return code, subcodes
 
     return dict(map(parse, codes))

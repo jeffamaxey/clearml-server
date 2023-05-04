@@ -35,10 +35,7 @@ class RegexMixin(object):
         if getattr(other, "empty", True):
             return self
 
-        if self.empty:
-            return other
-
-        return RegexQCombination(operation, [self, other])
+        return other if self.empty else RegexQCombination(operation, [self, other])
 
 
 class RegexQCombination(RegexMixin, QCombination):

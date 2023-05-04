@@ -91,8 +91,7 @@ class _TagsCache:
             redis_key = self._get_tags_cache_key(
                 company_id, field=field, project=project, filter_=filter_
             )
-            cached_tags = self.redis.lrange(redis_key, 0, -1)
-            if cached_tags:
+            if cached_tags := self.redis.lrange(redis_key, 0, -1):
                 tags = [c.decode() for c in cached_tags[1:]]
             else:
                 tags = list(
@@ -112,18 +111,17 @@ class _TagsCache:
         Updates tags. If reset is set then both tags and system_tags
         are recalculated. Otherwise only those that are not 'None'
         """
-        fields = [
+        if fields := [
             field
             for field, update in (
                 (self._tags_field, tags),
                 (self._system_tags_field, system_tags),
             )
             if update is not None
-        ]
-        if not fields:
+        ]:
+            self._delete_redis_keys(company_id, projects=[project], fields=fields)
+        else:
             return
-
-        self._delete_redis_keys(company_id, projects=[project], fields=fields)
 
     def reset_tags(self, company_id: str, projects: Sequence[str]):
         self._delete_redis_keys(
@@ -135,14 +133,13 @@ class _TagsCache:
     def _delete_redis_keys(
         self, company_id: str, projects: [Sequence[str]], fields: Sequence[str]
     ):
-        redis_keys = list(
+        if redis_keys := list(
             chain.from_iterable(
                 self.redis.keys(
-                    self._get_tags_cache_key(company_id, field=f, project=p) + "*"
+                    f"{self._get_tags_cache_key(company_id, field=f, project=p)}*"
                 )
                 for f in fields
                 for p in set(projects) | {None}
             )
-        )
-        if redis_keys:
+        ):
             self.redis.delete(*redis_keys)

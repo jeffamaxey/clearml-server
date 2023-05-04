@@ -49,12 +49,12 @@ def get_all(call: APICall, company_id: str, request: GetAllRequest):
 def register(call: APICall, company_id, request: RegisterRequest):
     worker = request.worker
     timeout = request.timeout
-    queues = request.queues
-
     if not timeout or timeout <= 0:
         raise bad_request.WorkerRegistrationFailed(
             "invalid timeout", timeout=timeout, worker=worker
         )
+
+    queues = request.queues
 
     worker_bll.register_worker(
         company_id=company_id,
@@ -160,21 +160,23 @@ def get_stats(call: APICall, company_id, request: GetStatsRequest):
         )
 
     def _get_metric_stats(
-        metric: str, stats: Union[dict, Sequence[dict]], agg_types: Sequence[str]
-    ) -> Sequence[MetricStats]:
+            metric: str, stats: Union[dict, Sequence[dict]], agg_types: Sequence[str]
+        ) -> Sequence[MetricStats]:
         """
         Return statistics for a certain metric or a list of statistic for
         metric variants if break_by_variant was requested
         """
         agg_names = ["date"] + list(set(agg_types))
-        if not isinstance(stats, dict):
-            # no variants were requested
-            return [_get_variant_metric_stats(metric, agg_names, stats)]
-
-        return [
-            _get_variant_metric_stats(metric, agg_names, variant_stats, variant)
-            for variant, variant_stats in stats.items()
-        ]
+        return (
+            [
+                _get_variant_metric_stats(
+                    metric, agg_names, variant_stats, variant
+                )
+                for variant, variant_stats in stats.items()
+            ]
+            if isinstance(stats, dict)
+            else [_get_variant_metric_stats(metric, agg_names, stats)]
+        )
 
     def _get_worker_metrics(stats: dict) -> Sequence[MetricStats]:
         """

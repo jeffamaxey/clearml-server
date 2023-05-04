@@ -110,7 +110,7 @@ def params_prepare_for_save(fields: dict, previous_task: Task = None):
 
             fields_update = {new_params_field: previous_data}
             params_unprepare_from_saved(fields_update)
-            fields.update(fields_update)
+            fields |= fields_update
 
         for full_name, value in legacy_params.items():
             section, name = split_param_name(full_name, default_section)
@@ -122,8 +122,7 @@ def params_prepare_for_save(fields: dict, previous_task: Task = None):
         nested_delete(fields, old_params_field)
 
     for param_field in ("hyperparams", "configuration"):
-        params = fields.get(param_field)
-        if params:
+        if params := fields.get(param_field):
             escaped_params = {
                 ParameterKeyEscaper.escape(key): {
                     ParameterKeyEscaper.escape(k): v for k, v in value.items()
@@ -141,8 +140,7 @@ def params_unprepare_from_saved(fields, copy_to_legacy=False):
     If copy_to_legacy is set then copy hyperparams and configuration data to the legacy location for the old clients
     """
     for param_field in ("hyperparams", "configuration"):
-        params = fields.get(param_field)
-        if params:
+        if params := fields.get(param_field):
             unescaped_params = {
                 ParameterKeyEscaper.unescape(key): {
                     ParameterKeyEscaper.unescape(k): v for k, v in value.items()
@@ -158,10 +156,9 @@ def params_unprepare_from_saved(fields, copy_to_legacy=False):
             ("hyperparams", ("execution", "parameters"), True),
             ("configuration", ("execution", "model_desc"), False),
         ):
-            legacy_params = _get_legacy_params(
+            if legacy_params := _get_legacy_params(
                 fields.get(new_params_field), with_sections=use_sections
-            )
-            if legacy_params:
+            ):
                 nested_set(
                     fields,
                     old_params_field,

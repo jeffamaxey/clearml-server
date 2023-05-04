@@ -77,14 +77,14 @@ class ProjectBLL:
                 new_parent_depth=len(destination.path) + 1,
             )
 
-            moved_entities = 0
-            for entity_type in (Task, Model):
-                moved_entities += entity_type.objects(
+            moved_entities = sum(
+                entity_type.objects(
                     company=company,
                     project=source_id,
                     system_tags__nin=[EntityVisibility.archived.value],
                 ).update(upsert=False, project=destination_id)
-
+                for entity_type in (Task, Model)
+            )
             moved_sub_projects = 0
             for child in Project.objects(company=company, parent=source_id):
                 _reposition_project_with_children(
@@ -262,14 +262,21 @@ class ProjectBLL:
             raise errors.bad_request.ValidationError("project id or name required")
 
         if project_id:
-            project = Project.objects(company=company, id=project_id).only("id").first()
-            if not project:
-                raise errors.bad_request.InvalidProjectId(id=project_id)
-            return project_id
+            if (
+                project := Project.objects(company=company, id=project_id)
+                .only("id")
+                .first()
+            ):
+                return project_id
 
+            else:
+                raise errors.bad_request.InvalidProjectId(id=project_id)
         project_name, _ = _validate_project_name(project_name)
-        project = Project.objects(company=company, name=project_name).only("id").first()
-        if project:
+        if (
+            project := Project.objects(company=company, name=project_name)
+            .only("id")
+            .first()
+        ):
             return project.id
 
         return cls.create(
@@ -346,7 +353,6 @@ class ProjectBLL:
             }
 
         status_count_pipeline = [
-            # count tasks per project per status
             {
                 "$match": cls.get_match_conditions(
                     company=company_id, project_ids=project_ids, filter_=filter_
@@ -363,7 +369,6 @@ class ProjectBLL:
                     "count": {"$sum": 1},
                 }
             },
-            # for each project, create a list of (status, count, archived)
             {
                 "$group": {
                     "_id": "$_id.project",
@@ -371,7 +376,7 @@ class ProjectBLL:
                         "$push": {
                             "status": "$_id.status",
                             "count": "$count",
-                            archived: "$_id.%s" % archived,
+                            archived: f"$_id.{archived}",
                         }
                     },
                 }
@@ -498,10 +503,10 @@ class ProjectBLL:
             return aggregated
         for pid in project_ids:
             relevant_projects = {p.id for p in child_projects.get(pid, [])} | {pid}
-            relevant_data = [data for p, data in data.items() if p in relevant_projects]
-            if not relevant_data:
-                continue
-            aggregated[pid] = reduce(func, relevant_data)
+            if relevant_data := [
+                data for p, data in data.items() if p in relevant_projects
+            ]:
+                aggregated[pid] = reduce(func, relevant_data)
         return aggregated
 
     @classmethod
@@ -576,12 +581,14 @@ class ProjectBLL:
         }
 
         def sum_runtime(
-            a: Mapping[str, Mapping], b: Mapping[str, Mapping]
-        ) -> Dict[str, dict]:
+                a: Mapping[str, Mapping], b: Mapping[str, Mapping]
+            ) -> Dict[str, dict]:
             return {
-                section: a.get(section, 0) + b.get(section, 0)
-                if not section.endswith("max_task_started")
-                else max(a.get(section) or datetime.min, b.get(section) or datetime.min)
+                section: max(
+                    a.get(section) or datetime.min, b.get(section) or datetime.min
+                )
+                if section.endswith("max_task_started")
+                else a.get(section, 0) + b.get(section, 0)
                 for section in set(a) | set(b)
             }
 

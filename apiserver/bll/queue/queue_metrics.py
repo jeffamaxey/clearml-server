@@ -250,7 +250,7 @@ class QueueMetrics:
         """
         Extract ES data for single date and queue bucket
         """
-        queue_metrics = dict()
+        queue_metrics = {}
         for queue_data in queue_buckets:
             if not queue_data["doc_count"]:
                 continue

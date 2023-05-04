@@ -68,13 +68,16 @@ class TaskUrls:
     artifact_urls: Sequence[str]
 
     def __add__(self, other: "TaskUrls"):
-        if not other:
-            return self
-
-        return TaskUrls(
-            model_urls=list(set(self.model_urls) | set(other.model_urls)),
-            event_urls=list(set(self.event_urls) | set(other.event_urls)),
-            artifact_urls=list(set(self.artifact_urls) | set(other.artifact_urls)),
+        return (
+            TaskUrls(
+                model_urls=list(set(self.model_urls) | set(other.model_urls)),
+                event_urls=list(set(self.event_urls) | set(other.event_urls)),
+                artifact_urls=list(
+                    set(self.artifact_urls) | set(other.artifact_urls)
+                ),
+            )
+            if other
+            else self
         )
 
 
@@ -90,14 +93,15 @@ class CleanupResult:
     urls: TaskUrls = None
 
     def __add__(self, other: "CleanupResult"):
-        if not other:
-            return self
-
-        return CleanupResult(
-            updated_children=self.updated_children + other.updated_children,
-            updated_models=self.updated_models + other.updated_models,
-            deleted_models=self.deleted_models + other.deleted_models,
-            urls=self.urls + other.urls if self.urls else other.urls,
+        return (
+            CleanupResult(
+                updated_children=self.updated_children + other.updated_children,
+                updated_models=self.updated_models + other.updated_models,
+                deleted_models=self.deleted_models + other.deleted_models,
+                urls=self.urls + other.urls if self.urls else other.urls,
+            )
+            if other
+            else self
         )
 
 
@@ -112,8 +116,7 @@ def collect_plot_image_urls(company: str, task: str) -> Set[str]:
             if not events:
                 break
             for event in events:
-                event_urls = event.get(PlotFields.source_urls)
-                if event_urls:
+                if event_urls := event.get(PlotFields.source_urls):
                     urls.update(set(event_urls))
 
     return urls
@@ -220,10 +223,9 @@ def cleanup_task(
 def verify_task_children_and_ouptuts(task: Task, force: bool) -> TaskOutputs[Model]:
     if not force:
         with TimingContext("mongo", "count_published_children"):
-            published_children_count = Task.objects(
+            if published_children_count := Task.objects(
                 parent=task.id, status=TaskStatus.published
-            ).count()
-            if published_children_count:
+            ).count():
                 raise errors.bad_request.TaskCannotBeDeleted(
                     "has children, use force=True",
                     task=task.id,
@@ -264,13 +266,12 @@ def verify_task_children_and_ouptuts(task: Task, force: bool) -> TaskOutputs[Mod
             dependent_tasks = Task.objects(models__input__model__in=model_ids).only(
                 "id", "models"
             )
-            input_models = {
+            if input_models := {
                 m.model
                 for m in chain.from_iterable(
                     t.models.input for t in dependent_tasks if t.models
                 )
-            }
-            if input_models:
+            }:
                 models.draft = DocumentGroup(
                     Model, (m for m in models.draft if m.id not in input_models)
                 )

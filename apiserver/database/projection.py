@@ -35,13 +35,11 @@ def project_dict(data, projection, separator=SEP):
                         dst[path_part] = [{} for _ in range(len(src_part))]
                     elif not isinstance(dst[path_part], (list, tuple)):
                         raise TypeError(
-                            "Incompatible destination type %s for %s (list expected)"
-                            % (type(dst), separator.join(path_parts[: depth + 1]))
+                            f"Incompatible destination type {type(dst)} for {separator.join(path_parts[:depth + 1])} (list expected)"
                         )
-                    elif not len(dst[path_part]) == len(src_part):
+                    elif len(dst[path_part]) != len(src_part):
                         raise ValueError(
-                            "Destination list length differs from source length for %s"
-                            % separator.join(path_parts[: depth + 1])
+                            f"Destination list length differs from source length for {separator.join(path_parts[:depth + 1])}"
                         )
 
                     dst[path_part] = [
@@ -52,8 +50,7 @@ def project_dict(data, projection, separator=SEP):
                     return destination
                 else:
                     raise TypeError(
-                        "Unsupported projection type %s for %s"
-                        % (type(src), separator.join(path_parts[: depth + 1]))
+                        f"Unsupported projection type {type(src)} for {separator.join(path_parts[:depth + 1])}"
                     )
 
             last_part = path_parts[-1]
@@ -191,7 +188,7 @@ class ProjectionHelper(object):
 
         def compute_ref_cls_projection(cls_, group):
             """ Compute inner projection for this class and group """
-            subfields = set([x[2] for x in group if x[2]])
+            subfields = {x[2] for x in group if x[2]}
             return normalize_cls_projection(cls_, subfields)
 
         def sort_key(proj_info):

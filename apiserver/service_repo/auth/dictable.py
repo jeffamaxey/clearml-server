@@ -16,7 +16,7 @@ class Dictable(object):
         res = {k: (v.to_dict() if isinstance(v, Dictable) else v) for k, v in d.items()}
         if extra:
             # add the extra items to our result, make sure not to overwrite existing properties (claims etc)
-            res.update({k: v for k, v in extra.items() if k not in props})
+            res |= {k: v for k, v in extra.items() if k not in props}
         return res
 
     @classmethod

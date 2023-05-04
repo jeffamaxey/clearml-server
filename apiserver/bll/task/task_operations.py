@@ -201,7 +201,7 @@ def delete_task(
 
     if move_to_trash:
         collection_name = task._get_collection_name()
-        archived_collection = "{}__trash".format(collection_name)
+        archived_collection = f"{collection_name}__trash"
         task.switch_collection(archived_collection)
         try:
             # A simple save() won't do due to mongoengine caching (nothing will be saved), so we have to force

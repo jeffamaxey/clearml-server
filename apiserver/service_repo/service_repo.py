@@ -96,7 +96,7 @@ class ServiceRepo(object):
             if (
                 sub_module.is_file()
                 and sub_module.suffix == ".py"
-                and not sub_module.stem == "__init__"
+                and sub_module.stem != "__init__"
             ):
                 import_module(
                     ".".join(
@@ -104,7 +104,7 @@ class ServiceRepo(object):
                     )
                 )
 
-            if sub_module.is_dir() and not sub_module.stem == "__pycache__":
+            if sub_module.is_dir() and sub_module.stem != "__pycache__":
                 import_module(
                     ".".join(
                         filter(None, (module_prefix, root_module.stem, sub_module.stem))
@@ -201,7 +201,7 @@ class ServiceRepo(object):
         """ Parse endpoint version, service and action from request path. """
         m = cls._endpoint_exp.match(path)
         if not m:
-            raise MalformedPathError("Invalid request path %s" % path)
+            raise MalformedPathError(f"Invalid request path {path}")
         endpoint_name = m.group("endpoint_name")
         version = m.group("endpoint_version")
         if version is None:
@@ -228,10 +228,7 @@ class ServiceRepo(object):
             # Code in dict, but no subcode. We'll allow it.
             return True
         subcode_list = cls._return_stack_on_code.get(code)
-        if subcode_list is None:
-            # if the code is there but we don't have any subcode list, always return stack
-            return True
-        return subcode in subcode_list
+        return True if subcode_list is None else subcode in subcode_list
 
     @classmethod
     def _get_identity(

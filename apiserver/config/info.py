@@ -13,8 +13,7 @@ root = Path(__file__).parent.parent
 def _get(prop_name, env_suffix=None, default=""):
     suffix = env_suffix or prop_name
     keys = [f"{p}_SERVER_{suffix}" for p in ("CLEARML", "TRAINS")]
-    value = first(map(getenv, keys))
-    if value:
+    if value := first(map(getenv, keys)):
         return value
 
     try:

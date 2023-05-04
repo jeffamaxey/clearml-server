@@ -62,23 +62,21 @@ class QueueBLL(object):
             qs = Queue.objects(**query)
             if only:
                 qs = qs.only(*only)
-            queue = qs.first()
-            if not queue:
+            if queue := qs.first():
+                return queue
+            else:
                 raise errors.bad_request.InvalidQueueId(**query)
-
-            return queue
 
     @classmethod
     def get_queue_with_task(cls, company_id: str, queue_id: str, task_id: str) -> Queue:
         with translate_errors_context():
             query = dict(id=queue_id, company=company_id)
-            queue = Queue.objects(entries__task=task_id, **query).first()
-            if not queue:
+            if queue := Queue.objects(entries__task=task_id, **query).first():
+                return queue
+            else:
                 raise errors.bad_request.InvalidQueueOrTaskNotQueued(
                     task=task_id, **query
                 )
-
-            return queue
 
     def get_default(self, company_id: str) -> Queue:
         """

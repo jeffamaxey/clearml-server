@@ -25,12 +25,9 @@ def migrate_backend(db: Database):
     for collection_name in ("task", "model", "project", "queue"):
         collection = db[collection_name]
         for doc in collection.find(filter=query, projection=fields):
-            update = {
-                field: sorted(doc[field])
-                for field in fields
-                if doc.get(field)
-            }
-            if update:
+            if update := {
+                field: sorted(doc[field]) for field in fields if doc.get(field)
+            }:
                 collection.update_one({"_id": doc["_id"]}, {"$set": update})
 
     _drop_all_indices_from_collections(

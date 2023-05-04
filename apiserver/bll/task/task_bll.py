@@ -86,7 +86,7 @@ class TaskBLL:
                 only_fields = [only_fields]
             else:
                 only_fields = list(only_fields)
-            only_fields = only_fields + ["status"]
+            only_fields += ["status"]
 
         with TimingContext("mongo", "task_by_id_all"):
             tasks = Task.get_many(
@@ -96,12 +96,12 @@ class TaskBLL:
                 override_projection=only_fields,
                 return_dicts=False,
             )
-            task = None if not tasks else tasks[0]
+            task = tasks[0] if tasks else None
 
         if not task:
             raise errors.bad_request.InvalidTaskId(id=task_id)
 
-        if required_status and not task.status == required_status:
+        if required_status and task.status != required_status:
             raise errors.bad_request.InvalidTaskStatus(expected=required_status)
 
         return task
@@ -150,12 +150,11 @@ class TaskBLL:
             return
 
         company = None if allow_only_public else task.company
-        model_ids = set(m.model for m in task.models.input)
+        model_ids = {m.model for m in task.models.input}
         models = Model.objects(
             Q(id__in=model_ids) & get_company_or_none_constraint(company)
         ).only("id")
-        missing = model_ids - {m.id for m in models}
-        if missing:
+        if missing := model_ids - {m.id for m in models}:
             raise errors.bad_request.InvalidModelId(models=missing)
 
         return
@@ -250,15 +249,19 @@ class TaskBLL:
             new_project_data = {"id": project, "name": new_project_name}
 
         def clean_system_tags(input_tags: Sequence[str]) -> Sequence[str]:
-            if not input_tags:
-                return input_tags
-
-            return [
-                tag
-                for tag in input_tags
-                if tag
-                not in [TaskSystemTags.development, EntityVisibility.archived.value]
-            ]
+            return (
+                [
+                    tag
+                    for tag in input_tags
+                    if tag
+                    not in [
+                        TaskSystemTags.development,
+                        EntityVisibility.archived.value,
+                    ]
+                ]
+                if input_tags
+                else input_tags
+            )
 
         with TimingContext("mongo", "clone task"):
             parent_task = (

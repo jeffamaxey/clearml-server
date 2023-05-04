@@ -24,7 +24,7 @@ class TestTasksHyperparams(TestService):
             kwargs,
             type="testing",
             name="test hyperparams",
-            input=dict(view=dict()),
+            input=dict(view={}),
             delete_params=dict(force=True),
         )
         return self.create_temp("tasks", **kwargs), kwargs["project"]
@@ -148,14 +148,14 @@ class TestTasksHyperparams(TestService):
     @staticmethod
     def _new_params_from_legacy(legacy: dict) -> List[dict]:
         return [
-            dict(section="Args", name=k, value=str(v), type="legacy")
-            if not k.startswith("TF_DEFINE/")
-            else dict(
+            dict(
                 section="TF_DEFINE",
                 name=k[len("TF_DEFINE/") :],
                 value=str(v),
                 type="legacy",
             )
+            if k.startswith("TF_DEFINE/")
+            else dict(section="Args", name=k, value=str(v), type="legacy")
             for k, v in legacy.items()
         ]
 

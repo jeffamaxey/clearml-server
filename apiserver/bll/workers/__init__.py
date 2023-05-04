@@ -174,8 +174,11 @@ class WorkerBLL:
 
                     entry.project = None
                     if task.project:
-                        project = Project.objects(id=task.project).only("name").first()
-                        if project:
+                        if (
+                            project := Project.objects(id=task.project)
+                            .only("name")
+                            .first()
+                        ):
                             entry.project = IdNameEntry(id=project.id, name=project.name)
 
             entry.last_report_time = now
@@ -330,11 +333,7 @@ class WorkerBLL:
             try:
                 return self.register_worker(company_id, user_id, worker)
             except Exception:
-                log.error(
-                    "Failed auto registration of {} for company {}".format(
-                        worker, company_id
-                    )
-                )
+                log.error(f"Failed auto registration of {worker} for company {company_id}")
 
         raise bad_request.InvalidWorkerId(worker=worker)
 

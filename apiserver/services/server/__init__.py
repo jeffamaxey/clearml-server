@@ -24,11 +24,7 @@ def get_stats(call: APICall):
 @endpoint("server.config")
 def get_config(call: APICall):
     path = call.data.get("path")
-    if path:
-        c = dict(config.get(path))
-    else:
-        c = config.to_dict()
-
+    c = dict(config.get(path)) if path else config.to_dict()
     def remove_none_value(x):
         """
         Pyhocon bug in Python 3: leaves dummy "NoneValue"s in tree,
@@ -38,9 +34,7 @@ def get_config(call: APICall):
             return {key: remove_none_value(value) for key, value in x.items()}
         if isinstance(x, list):
             return list(map(remove_none_value, x))
-        if isinstance(x, NoneValue):
-            return None
-        return x
+        return None if isinstance(x, NoneValue) else x
 
     c.pop("secure", None)
 

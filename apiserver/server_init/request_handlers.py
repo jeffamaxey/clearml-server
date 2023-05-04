@@ -94,11 +94,9 @@ class RequestHandlers:
         def convert_value(v: str):
             if v.replace(".", "", 1).isdigit():
                 return float(v) if "." in v else int(v)
-            if v in ("true", "True", "TRUE"):
+            if v in {"true", "True", "TRUE"}:
                 return True
-            if v in ("false", "False", "FALSE"):
-                return False
-            return v
+            return False if v in {"false", "False", "FALSE"} else v
 
         for k, v in md.lists():
             v = [convert_value(x) for x in v] if (len(v) > 1 or k.endswith("[]")) else convert_value(v[0])
@@ -152,13 +150,11 @@ class RequestHandlers:
                 config.get("apiserver.auth.session_auth_cookie_name")
             )
             headers = (
-                {}
-                if not auth_cookie
-                else {"Authorization": f"{AuthType.bearer_token} {auth_cookie}"}
+                {"Authorization": f"{AuthType.bearer_token} {auth_cookie}"}
+                if auth_cookie
+                else {}
             )
-            headers.update(
-                list(req.headers.items())
-            )  # add (possibly override with) the headers
+            headers |= list(req.headers.items())
 
             # Construct call instance
             call = APICall(

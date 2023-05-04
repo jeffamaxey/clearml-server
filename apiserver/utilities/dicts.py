@@ -43,9 +43,7 @@ def nested_get(
     node = dictionary
     for key in path:
         if not node or key not in node:
-            if callable(default):
-                return default()
-            return default
+            return default() if callable(default) else default
         node = node.get(key)
 
     return node

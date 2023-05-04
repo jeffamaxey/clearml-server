@@ -62,9 +62,11 @@ class TestTaskEvents(TestService):
             )
             self.assertEqual(
                 set(res_metrics),
-                set(
-                    metric for metric, events in metrics.items() if event_type in events
-                ),
+                {
+                    metric
+                    for metric, events in metrics.items()
+                    if event_type in events
+                },
             )
 
     def test_last_scalar_metrics(self):
@@ -326,7 +328,7 @@ class TestTaskEvents(TestService):
             self.assertEqual(data["x"][curr], curr * interval)
             self.assertEqual(
                 data["y"][curr],
-                mean(v for v in range(curr * interval, (curr + 1) * interval)),
+                mean(iter(range(curr * interval, (curr + 1) * interval))),
             )
 
     def test_task_plots(self):
@@ -468,7 +470,7 @@ class TestTaskEvents(TestService):
         self.send_batch([event, event1])
         res = self.api.events.get_task_plots(task=task).plots
         self.assertEqual(len(res), 2)
-        self.assertEqual(set(r.metric for r in res), {"test1", "test2"})
+        self.assertEqual({r.metric for r in res}, {"test1", "test2"})
 
     def send_batch(self, events):
         _, data = self.api.send_batch("events.add_batch", events)

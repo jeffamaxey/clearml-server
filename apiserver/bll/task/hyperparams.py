@@ -117,7 +117,7 @@ class HyperParams:
                 force=force,
             )
 
-            update_cmds = dict()
+            update_cmds = {}
             hyperparams = cls._db_dicts_from_list(hyperparams)
             if replace_hyperparams == ReplaceHyperparams.all:
                 update_cmds["set__hyperparams"] = hyperparams
@@ -217,7 +217,7 @@ class HyperParams:
                 company_id=company_id, task_id=task_id, force=force
             )
 
-            update_cmds = dict()
+            update_cmds = {}
             configuration = {
                 ParameterKeyEscaper.escape(c.name): ConfigurationItem(**c.to_struct())
                 for c in configuration

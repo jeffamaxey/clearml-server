@@ -89,7 +89,7 @@ class ValidationError(Exception):
     def report(self, schema_file):
         message = color(schema_file, fg='red')
         if self.message:
-            message += ": {}".format(self.message)
+            message += f": {self.message}"
         print(message)
 
 
@@ -105,7 +105,7 @@ class InvalidFile(ValidationError):
         super(InvalidFile, self).__init__(message)
         exc_type, _, _ = self.exc_info = sys.exc_info()
         if exc_type:
-            self.message = "{}: {}".format(exc_type.__name__, message)
+            self.message = f"{exc_type.__name__}: {message}"
 
     def raise_original(self):
         six.reraise(*self.exc_info)
@@ -122,16 +122,17 @@ def load_hocon(name):
 
 
 def validate_ascii_only(name):
-    invalid_char = next(
+    if invalid_char := next(
         (
             (line_num, column, char)
-            for line_num, line in enumerate(Path(name).read_text().splitlines())
+            for line_num, line in enumerate(
+                Path(name).read_text().splitlines()
+            )
             for column, char in enumerate(line)
             if ord(char) not in range(128)
         ),
         None,
-    )
-    if invalid_char:
+    ):
         line, column, char = invalid_char
         raise ValidationError(
             "file contains non-ascii character {!r} in line {} pos {}".format(
@@ -159,7 +160,7 @@ def validate_file(meta, name):
         return schema
     except JSONSchemaValidationError as e:
         path = "->".join(e.absolute_path)
-        message = "{}: {}".format(path, e.args[0])
+        message = f"{path}: {e.args[0]}"
         raise InvalidFile(message)
     except Exception as e:
         raise InvalidFile(str(e))
@@ -250,7 +251,7 @@ def remove_description(dct):
 
 def main(here: str):
     args = parse_args()
-    meta = load_hocon(here + "/meta.conf")
+    meta = load_hocon(f"{here}/meta.conf")
     validator_for(meta).check_schema(meta)
 
     driver = LazyDriver()
@@ -285,17 +286,14 @@ def main(here: str):
         for name, values in collisions.items():
             if len(values) <= 1:
                 continue
-            groups = [
+            if groups := [
                 [service for (service, _) in pairs]
                 for _, pairs in groupby(values.items(), itemgetter(1))
-            ]
-            if not groups:
-                raise RuntimeError("Unknown error")
-            print(
-                "{}: collision for {}:\n{}".format(warning, name, yaml.dump(groups)),
-                end="",
-            )
+            ]:
+                print(f"{warning}: collision for {name}:\n{yaml.dump(groups)}", end="")
 
+            else:
+                raise RuntimeError("Unknown error")
     driver.wait()
 
 

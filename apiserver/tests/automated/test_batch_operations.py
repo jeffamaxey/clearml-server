@@ -49,7 +49,7 @@ class TestBatchOperations(TestService):
         self._assert_succeeded(res, tasks)
         self.assertEqual(sum(t.deleted_models for t in res.succeeded), 2)
         self.assertEqual(
-            set(url for t in res.succeeded for url in t.urls.model_urls),
+            {url for t in res.succeeded for url in t.urls.model_urls},
             {"uri_0", "uri_1"},
         )
         self._assert_failed(res, [missing_id])
@@ -113,16 +113,16 @@ class TestBatchOperations(TestService):
         # delete
         res = self.api.models.delete_many(ids=[*models, missing_id], force=True)
         self._assert_succeeded(res, models)
-        self.assertEqual(set(m.url for m in res.succeeded), set(uris))
+        self.assertEqual({m.url for m in res.succeeded}, set(uris))
         self._assert_failed(res, [missing_id])
         data = self.api.models.get_all_ex(id=ids).models
         self.assertEqual(data, [])
 
     def _assert_succeeded(self, res, succeeded_ids):
-        self.assertEqual(set(f.id for f in res.succeeded), set(succeeded_ids))
+        self.assertEqual({f.id for f in res.succeeded}, set(succeeded_ids))
 
     def _assert_failed(self, res, failed_ids):
-        self.assertEqual(set(f.id for f in res.failed), set(failed_ids))
+        self.assertEqual({f.id for f in res.failed}, set(failed_ids))
 
     def _temp_model(self, **kwargs):
         self.update_missing(kwargs, name=self.name, uri="file:///a/b", labels={})

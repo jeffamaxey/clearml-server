@@ -131,10 +131,11 @@ def get_all_ex(call: APICall, company_id: str, request: ProjectsGetRequest):
         )
 
         if request.check_own_contents and requested_ids:
-            existing_requested_ids = {
-                project["id"] for project in projects if project["id"] in requested_ids
-            }
-            if existing_requested_ids:
+            if existing_requested_ids := {
+                project["id"]
+                for project in projects
+                if project["id"] in requested_ids
+            }:
                 contents = project_bll.calc_own_contents(
                     company=company_id,
                     project_ids=list(existing_requested_ids),

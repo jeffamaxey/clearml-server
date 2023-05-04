@@ -12,9 +12,7 @@ class TestTasksEdit(TestService):
         super().setUp(version="2.12")
 
     def new_task(self, **kwargs):
-        self.update_missing(
-            kwargs, type="testing", name="test", input=dict(view=dict())
-        )
+        self.update_missing(kwargs, type="testing", name="test", input=dict(view={}))
         return self.create_temp("tasks", **kwargs)
 
     def new_model(self, **kwargs):

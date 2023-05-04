@@ -89,7 +89,7 @@ class TestWorkersService(TestService):
     def test_get_keys(self):
         workers = self._simulate_workers()
         res = self.api.workers.get_metric_keys(worker_ids=workers)
-        assert {"cpu", "memory"} == set(c.name for c in res["categories"])
+        assert {"cpu", "memory"} == {c.name for c in res["categories"]}
         assert all(
             c.metric_keys == ["cpu_usage"] for c in res["categories"] if c.name == "cpu"
         )

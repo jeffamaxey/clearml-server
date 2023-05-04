@@ -121,9 +121,9 @@ from apiserver.timing_context import TimingContext
 from apiserver.utilities.partial_version import PartialVersion
 
 task_fields = set(Task.get_fields())
-task_script_stripped_fields = set(
-    [f for f, v in get_fields_attr(Script, "strip").items() if v]
-)
+task_script_stripped_fields = {
+    f for f, v in get_fields_attr(Script, "strip").items() if v
+}
 
 task_bll = TaskBLL()
 event_bll = EventBLL()
@@ -192,12 +192,10 @@ def escape_execution_parameters(call: APICall) -> dict:
         safe_key: call.data[key] for key, safe_key in zip(keys, escape_paths(keys))
     }
 
-    projection = Task.get_projection(call_data)
-    if projection:
+    if projection := Task.get_projection(call_data):
         Task.set_projection(call_data, escape_paths(projection))
 
-    ordering = Task.get_ordering(call_data)
-    if ordering:
+    if ordering := Task.get_ordering(call_data):
         Task.set_ordering(call_data, escape_paths(ordering))
 
     return call_data
@@ -417,9 +415,7 @@ def prepare_for_save(call: APICall, fields: dict, previous_task: Task = None):
     for path in dict_fields_paths:
         escape_dict_field(fields, path)
 
-    # Strip all script fields (remove leading and trailing whitespace chars) to avoid unusable names and paths
-    script = fields.get("script")
-    if script:
+    if script := fields.get("script"):
         for field in task_script_stripped_fields:
             value = script.get(field)
             if isinstance(value, str):
@@ -469,9 +465,7 @@ def prepare_create_fields(
             output = Output(destination=output_dest)
         fields["output"] = output
 
-    # Add models updated time
-    models = fields.get("models")
-    if models:
+    if models := fields.get("models"):
         now = datetime.utcnow()
         for field in (TaskModelTypes.input, TaskModelTypes.output):
             field_models = models.get(field)
@@ -728,7 +722,7 @@ def edit(call: APICall, company_id, req_model: UpdateRequest):
 
         # make sure field names do not end in mongoengine comparison operators
         fixed_fields = {
-            (k if k not in COMPARISON_OPERATORS else "%s__" % k): v
+            k if k not in COMPARISON_OPERATORS else f"{k}__": v
             for k, v in fields.items()
         }
         if fixed_fields:
@@ -1004,15 +998,15 @@ def archive(call: APICall, company_id, request: ArchiveRequest):
         task_ids=request.tasks,
         only=("id", "execution", "status", "project", "system_tags", "enqueue_status"),
     )
-    archived = 0
-    for task in tasks:
-        archived += archive_task(
+    archived = sum(
+        archive_task(
             company_id=company_id,
             task=task,
             status_message=request.status_message,
             status_reason=request.status_reason,
         )
-
+        for task in tasks
+    )
     call.result.data_model = ArchiveResponse(archived=archived)
 
 
@@ -1094,7 +1088,7 @@ def delete_many(call: APICall, company_id, request: DeleteManyRequest):
     )
 
     if results:
-        projects = set(task.project for _, (_, task, _) in results)
+        projects = {task.project for _, (_, task, _) in results}
         _reset_cached_tags(company_id, projects=list(projects))
 
     call.result.data = dict(
@@ -1228,9 +1222,11 @@ def move(call: APICall, company_id: str, request: MoveRequest):
             "project or project_name is required"
         )
 
-    updated_projects = set(
-        t.project for t in Task.objects(id__in=request.ids).only("project") if t.project
-    )
+    updated_projects = {
+        t.project
+        for t in Task.objects(id__in=request.ids).only("project")
+        if t.project
+    }
     project_id = project_bll.move_under_project(
         entity_cls=Task,
         user=call.identity.user,
@@ -1260,7 +1256,7 @@ def add_or_update_model(_: APICall, company_id: str, request: AddUpdateModelRequ
         task_id=request.task,
         company_id=company_id,
         last_iteration_max=request.iteration,
-        **({f"push__{models_field}": model} if not updated else {}),
+        **{} if updated else {f"push__{models_field}": model},
     )
 
     return {"updated": updated}

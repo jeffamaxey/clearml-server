@@ -25,11 +25,7 @@ def apply_mappings_to_cluster(
             return {"mapping": template_name, "result": res}
 
     p = HERE / "mappings"
-    if key:
-        files = (p / key).glob("*.json")
-    else:
-        files = p.glob("**/*.json")
-
+    files = (p / key).glob("*.json") if key else p.glob("**/*.json")
     es = Elasticsearch(hosts=hosts, http_auth=http_auth, **(es_args or {}))
     return [_send_template(f) for f in files]
 
@@ -49,7 +45,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    print(">>>>> Applying mapping to " + str(args.hosts))
+    print(f">>>>> Applying mapping to {str(args.hosts)}")
     res = apply_mappings_to_cluster(args.hosts, args.key)
     print(res)
 

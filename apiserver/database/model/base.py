@@ -341,8 +341,7 @@ class GetMixin(PropsMixin):
             }
             opts = parameters_options
             for field in opts.pattern_fields:
-                pattern = parameters.pop(field, None)
-                if pattern:
+                if pattern := parameters.pop(field, None):
                     dict_query[field] = RegexWrapper(pattern)
 
             for field, data in cls._pop_matching_params(
@@ -376,7 +375,7 @@ class GetMixin(PropsMixin):
                             value = parse_datetime(m.group("value"))
                             prefix = m.group("prefix")
                             modifier = ACCESS_MODIFIER.get(prefix)
-                            f = field if not modifier else "__".join((field, modifier))
+                            f = "__".join((field, modifier)) if modifier else field
                             dict_query[f] = value
                         except (ValueError, OverflowError):
                             pass
@@ -472,19 +471,20 @@ class GetMixin(PropsMixin):
             for action in filter(None, actions)
         ]
 
-        if not queries:
-            q = RegexQ()
-        else:
-            q = RegexQCombination(operation=global_op, children=queries)
-
-        if not helper.allow_empty:
-            return q
-
+        q = (
+            RegexQCombination(operation=global_op, children=queries)
+            if queries
+            else RegexQ()
+        )
         return (
-            q
-            | RegexQ(**{f"{mongoengine_field}__exists": False})
-            | RegexQ(**{mongoengine_field: []})
-            | RegexQ(**{mongoengine_field: None})
+            (
+                q
+                | RegexQ(**{f"{mongoengine_field}__exists": False})
+                | RegexQ(**{mongoengine_field: []})
+                | RegexQ(**{mongoengine_field: None})
+            )
+            if helper.allow_empty
+            else q
         )
 
     @classmethod
@@ -553,9 +553,12 @@ class GetMixin(PropsMixin):
         """ Extract a projection list from the provided dictionary. Supports an override projection. """
         if override_projection is not None:
             return override_projection
-        if not parameters:
-            return []
-        return parameters.get(cls._projection_key) or parameters.get("only_fields", [])
+        return (
+            parameters.get(cls._projection_key)
+            or parameters.get("only_fields", [])
+            if parameters
+            else []
+        )
 
     @classmethod
     def split_projection(
@@ -919,8 +922,7 @@ class GetMixin(PropsMixin):
             order_field = first(
                 field for field in order_by if not field.startswith("$")
             )
-            res = cls._get_queries_for_order_field(query, order_field)
-            if res:
+            if res := cls._get_queries_for_order_field(query, order_field):
                 query_sets = [cls.objects(q) for q in res]
             query_sets = [qs.order_by(*order_by) for qs in query_sets]
             if order_field and not override_collation:
@@ -988,8 +990,7 @@ class GetMixin(PropsMixin):
             **dict(return_dicts=False, **kwargs),
             allow_public=True,
         )
-        forbidden_objects = {obj.id for obj in result if not obj.company}
-        if forbidden_objects:
+        if forbidden_objects := {obj.id for obj in result if not obj.company}:
             object_name = cls.__name__.lower()
             raise errors.forbidden.NoWritePermission(
                 f"cannot modify public {object_name}(s), ids={tuple(forbidden_objects)}"
@@ -1023,17 +1024,16 @@ class UpdateMixin(object):
             return {}
         valid_fields = cls.user_set_allowed()
         fields = [(k, v, fields[k]) for k, v in valid_fields.items() if k in fields]
-        update_dict = {
+        return {
             field: value
             for field, allowed, value in fields
             if allowed is None
             or (
-                (value in allowed)
-                if not isinstance(value, list)
-                else all(v in allowed for v in value)
+                all(v in allowed for v in value)
+                if isinstance(value, list)
+                else value in allowed
             )
         }
-        return update_dict
 
     @classmethod
     def safe_update(
@@ -1116,13 +1116,13 @@ def validate_id(cls, company, **kwargs):
     """
     ids = set(kwargs.values())
     objs = list(cls.objects(company=company, id__in=ids).only("id"))
-    missing = ids - set(x.id for x in objs)
+    missing = ids - {x.id for x in objs}
     if not missing:
         return
     id_to_name = {}
     for name, obj_id in kwargs.items():
         id_to_name.setdefault(obj_id, []).append(name)
     raise errors.bad_request.ValidationError(
-        "Invalid {} ids".format(cls.__name__.lower()),
+        f"Invalid {cls.__name__.lower()} ids",
         **{name: obj_id for obj_id in missing for name in id_to_name[obj_id]},
     )

@@ -20,6 +20,8 @@ from apiserver.database.model.project import Project
 from apiserver.database.model.task.task import Task
 
 
+
+
 class Model(AttributedDocument):
     _field_collation_overrides = {
         "metadata.": AttributedDocument._numeric_locale,
@@ -37,8 +39,15 @@ class Model(AttributedDocument):
             ("company", "name"),
             ("company", "user"),
             {
-                "name": "%s.model.main_text_index" % Database.backend,
-                "fields": ["$name", "$id", "$comment", "$parent", "$task", "$project"],
+                "name": f"{Database.backend}.model.main_text_index",
+                "fields": [
+                    "$name",
+                    "$id",
+                    "$comment",
+                    "$parent",
+                    "$task",
+                    "$project",
+                ],
                 "default_language": "english",
                 "weights": {
                     "name": 10,

@@ -21,11 +21,7 @@ log = config.logger(__file__)
 
 class APICallResult:
     def __init__(self, res):
-        if isinstance(res, str):
-            self._dict = json.loads(res)
-        else:
-            self._dict = res
-
+        self._dict = json.loads(res) if isinstance(res, str) else res
         self.data = self._dict["data"]
         self.meta = APICallResultMeta(self._dict["meta"])
 
@@ -67,7 +63,7 @@ class APIError(Exception):
         )
         if meta.error_stack:
             header = "\n--- SERVER ERROR {} ---\n"
-            formatted_traceback = "\n{}{}{}\n".format(header.format("START"), meta.error_stack, header.format("END"))
+            formatted_traceback = f'\n{header.format("START")}{meta.error_stack}{header.format("END")}\n'
             message += formatted_traceback
         return message
 
@@ -206,7 +202,7 @@ class APIClient:
         if data is None:
             data = {}
         headers = {"Content-Type": "application/json"}
-        headers.update(headers_overrides)
+        headers |= headers_overrides
         if is_async:
             headers["X-ClearML-Async"] = "1"
 
@@ -217,17 +213,14 @@ class APIClient:
             auth = HTTPBasicAuth(self.api_key, self.secret_key)
         else:
             auth = None
-            headers["Authorization"] = "Bearer %s" % self.session_token
+            headers["Authorization"] = f"Bearer {self.session_token}"
 
-        url = "%s/%s" % (self.base_url, endpoint)
+        url = f"{self.base_url}/{endpoint}"
         start = time.time()
 
         http_res = self.http_session.post(url, headers=headers, data=data, auth=auth)
         if not http_res.text:
-            msg = "APIClient got non standard response from %s. http_status=%s " % (
-                url,
-                http_res.status_code,
-            )
+            msg = f"APIClient got non standard response from {url}. http_status={http_res.status_code} "
             log.error(msg)
             raise Exception(msg)
 
@@ -236,11 +229,11 @@ class APIClient:
             # poll server for async result
             got_result = False
             call_id = res.meta.call_id
-            async_res_url = "%s/async.result?id=%s" % (self.base_url, call_id)
+            async_res_url = f"{self.base_url}/async.result?id={call_id}"
             async_res_headers = headers.copy()
             async_res_headers.pop("X-ClearML-Async")
             while not got_result:
-                log.info("Got 202. Checking async result for %s (%s)" % (url, call_id))
+                log.info(f"Got 202. Checking async result for {url} ({call_id})")
                 http_res = self.http_session.get(
                     async_res_url, headers=async_res_headers
                 )
@@ -258,17 +251,12 @@ class APIClient:
             if raise_errors:
                 raise error
         else:
-            msg = "APIClient got {} from {}{}".format(
-                res.meta.result_code, url, format_duration(duration)
-            )
+            msg = f"APIClient got {res.meta.result_code} from {url}{format_duration(duration)}"
             log.info(msg)
             if log_response:
                 log.debug(res.as_dict())
 
-        if extract is None:
-            return res, res.data
-        else:
-            return res, res.data.get(extract)
+        return (res, res.data) if extract is None else (res, res.data.get(extract))
 
     class Service(object):
         def __init__(self, api, name):
@@ -277,7 +265,7 @@ class APIClient:
 
         def __getattr__(self, item):
             return lambda **kwargs: AttrDict(
-                self.api.send("{}.{}".format(self.name, item), kwargs)[1]
+                self.api.send(f"{self.name}.{item}", kwargs)[1]
             )
 
     def __getattr__(self, item):

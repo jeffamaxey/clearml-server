@@ -14,7 +14,7 @@ class TestProjection(TestService):
             kwargs,
             type="testing",
             name="test projection",
-            input=dict(view=dict()),
+            input=dict(view={}),
             delete_params=dict(force=True),
         )
         return self.create_temp("tasks", **kwargs)

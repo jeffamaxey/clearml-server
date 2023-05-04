@@ -151,9 +151,7 @@ class TestTags(TestService):
         ).queues
         self.assertFound(q_id, [], queues)
 
-        # test default queue
-        queues = self.api.queues.get_all(system_tags=["default"]).queues
-        if queues:
+        if queues := self.api.queues.get_all(system_tags=["default"]).queues:
             self.assertEqual(queues[0].id, self.api.queues.get_default().id)
         else:
             self.api.queues.update(queue=q_id, system_tags=["default"])
@@ -222,7 +220,9 @@ class TestTags(TestService):
         return self.create_temp("models", **kwargs)
 
     def _temp_task(self, **kwargs):
-        self.update_missing(kwargs, name="Test tags", type="testing", input=dict(view=dict()))
+        self.update_missing(
+            kwargs, name="Test tags", type="testing", input=dict(view={})
+        )
         return self.create_temp("tasks", **kwargs)
 
     def _send(self, service, action, **kwargs):

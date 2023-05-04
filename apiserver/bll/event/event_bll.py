@@ -173,16 +173,13 @@ class EventBLL(object):
 
             index_name = get_index_name(company_id, event_type)
             es_action = {
-                "_op_type": "index",  # overwrite if exists with same ID
+                "_op_type": "index",
                 "_index": index_name,
                 "_source": event,
+                "_id": self._get_event_id(event)
+                if event_type != EventType.task_log.value
+                else dbutils.id(),
             }
-
-            # for "log" events, don't assing custom _id - whatever is sent, is written (not overwritten)
-            if event_type != EventType.task_log.value:
-                es_action["_id"] = self._get_event_id(event)
-            else:
-                es_action["_id"] = dbutils.id()
 
             task_ids.add(task_id)
             if (
@@ -201,12 +198,11 @@ class EventBLL(object):
 
             actions.append(es_action)
 
-        plot_actions = [
+        if plot_actions := [
             action["_source"]
             for action in actions
             if action["_source"]["type"] == EventType.metrics_plot.value
-        ]
-        if plot_actions:
+        ]:
             self.validate_and_compress_plots(
                 plot_actions,
                 validate_json=config.get("services.events.validate_plot_str", False),
@@ -259,9 +255,9 @@ class EventBLL(object):
                             remaining_tasks, company_id, last_update=now
                         )
 
-            # this is for backwards compatibility with streaming bulk throwing exception on those
-            invalid_iterations_count = errors_per_type.get(invalid_iteration_error)
-            if invalid_iterations_count:
+            if invalid_iterations_count := errors_per_type.get(
+                invalid_iteration_error
+            ):
                 raise BulkIndexError(
                     f"{invalid_iterations_count} document(s) failed to index.",
                     [invalid_iteration_error],
@@ -294,8 +290,7 @@ class EventBLL(object):
             if validate:
                 event[PlotFields.valid_plot] = self._is_valid_json(plot_str)
 
-            urls = {match for match in self.img_source_regex.findall(plot_str)}
-            if urls:
+            if urls := set(self.img_source_regex.findall(plot_str)):
                 event[PlotFields.source_urls] = list(urls)
 
             if compression_threshold and plot_len >= compression_threshold:
@@ -414,10 +409,13 @@ class EventBLL(object):
         if last_events:
             fields["last_events"] = last_events
 
-        if not fields:
-            return False
-
-        return TaskBLL.update_statistics(task_id, company_id, last_update=now, **fields)
+        return (
+            TaskBLL.update_statistics(
+                task_id, company_id, last_update=now, **fields
+            )
+            if fields
+            else False
+        )
 
     def _get_event_id(self, event):
         id_values = (str(event[field]) for field in self.id_fields if field in event)
@@ -571,19 +569,15 @@ class EventBLL(object):
                     must.append(get_metric_variants_condition(metric_variants))
             else:
                 should = []
-                for i, task_id in enumerate(tasks):
-                    last_iters = self.get_last_iterations_per_event_metric_variant(
+                for task_id in tasks:
+                    if last_iters := self.get_last_iterations_per_event_metric_variant(
                         company_id=company_id,
                         task_id=task_id,
                         num_last_iterations=last_iterations_per_plot,
                         event_type=event_type,
                         metric_variants=metric_variants,
-                    )
-                    if not last_iters:
-                        continue
-
-                    for metric, variant, iter in last_iters:
-                        should.append(
+                    ):
+                        should.extend(
                             {
                                 "bool": {
                                     "must": [
@@ -594,6 +588,7 @@ class EventBLL(object):
                                     ]
                                 }
                             }
+                            for metric, variant, iter in last_iters
                         )
                 if not should:
                     return TaskEventsResult()
@@ -713,7 +708,7 @@ class EventBLL(object):
                     task_id=task_ids,
                     iters=last_iter_count,
                 )
-                should = [
+                if should := [
                     {
                         "bool": {
                             "must": [
@@ -724,11 +719,11 @@ class EventBLL(object):
                     }
                     for task, last_iters in tasks_iters.items()
                     if last_iters
-                ]
-                if not should:
-                    return TaskEventsResult()
-                must.append({"bool": {"should": should}})
+                ]:
+                    must.append({"bool": {"should": should}})
 
+                else:
+                    return TaskEventsResult()
             if sort is None:
                 sort = [{"timestamp": {"order": "asc"}}]
 

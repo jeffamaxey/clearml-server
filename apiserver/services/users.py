@@ -41,11 +41,10 @@ def get_user(call, company_id, user_id, only=None):
         user = User.objects(**query)
         if only:
             user = user.only(*only)
-        res = user.first()
-        if not res:
+        if res := user.first():
+            return res.to_proper_dict()
+        else:
             raise errors.bad_request.InvalidUserId(**query)
-
-        return res.to_proper_dict()
 
 
 @endpoint("users.get_by_id", required_fields=["user"])

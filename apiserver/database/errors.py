@@ -135,10 +135,9 @@ class MongoEngineErrorsHandler(object):
         params = {}
         if m:
             params["document"] = m.group("document")
-            fields = cls.__not_exist_field_regex.findall(m.group("fields"))
-            if fields:
+            if fields := cls.__not_exist_field_regex.findall(m.group("fields")):
                 if len(fields) > 1:
-                    params["fields"] = "(%s)" % ", ".join(fields)
+                    params["fields"] = f'({", ".join(fields)})'
                 else:
                     params["field"] = fields[0]
         raise field_does_not_exist_cls(message, **params)
@@ -177,7 +176,7 @@ def translate_errors_context(message=None, **kwargs):
     """
     try:
         if message:
-            message = "while " + message
+            message = f"while {message}"
         yield True
     except ValidationError as e:
         MongoEngineErrorsHandler.validation_error(e, message, **kwargs)

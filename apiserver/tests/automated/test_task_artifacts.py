@@ -14,7 +14,7 @@ class TestTasksArtifacts(TestService):
             kwargs,
             type="testing",
             name="test artifacts",
-            input=dict(view=dict()),
+            input=dict(view={}),
             delete_params=dict(force=True),
         )
         return self.create_temp("tasks", **kwargs)
@@ -78,7 +78,7 @@ class TestTasksArtifacts(TestService):
         # test delete
         self.api.tasks.delete_artifacts(task=task, artifacts=[{"key": artifacts[-1]["key"]}])
         res = self.api.tasks.get_all_ex(id=[task]).tasks[0]
-        self._assertTaskArtifacts(artifacts[0: len(artifacts) - 1], res)
+        self._assertTaskArtifacts(artifacts[:-1], res)
 
         # test edit running task
         self.api.tasks.started(task=task)
@@ -87,11 +87,11 @@ class TestTasksArtifacts(TestService):
         self._assertTaskArtifacts(artifacts, res)
         self.api.tasks.delete_artifacts(task=task, artifacts=[{"key": artifacts[-1]["key"]}])
         res = self.api.tasks.get_all_ex(id=[task]).tasks[0]
-        self._assertTaskArtifacts(artifacts[0: len(artifacts) - 1], res)
+        self._assertTaskArtifacts(artifacts[:-1], res)
 
         self.api.tasks.reset(task=task)
         res = self.api.tasks.get_all_ex(id=[task]).tasks[0]
-        self._assertTaskArtifacts(artifacts[0: 1], res)
+        self._assertTaskArtifacts(artifacts[:1], res)
 
     def _update_source(self, source: Sequence[dict], update: Sequence[dict]):
         dict1 = {s["key"]: s for s in source}
@@ -100,7 +100,7 @@ class TestTasksArtifacts(TestService):
             k: v if k not in dict2 else dict2[k]
             for k, v in dict1.items()
         }
-        res.update({k: v for k, v in dict2.items() if k not in res})
+        res |= {k: v for k, v in dict2.items() if k not in res}
         return list(res.values())
 
     def _assertTaskArtifacts(self, artifacts: Sequence[dict], task):

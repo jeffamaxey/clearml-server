@@ -24,9 +24,7 @@ class Settings(DbModelMixin, Document):
     def get_by_key(cls, key: str, default: Optional[Any] = None, sep: str = ".") -> Any:
         key = key.strip(sep)
         res = Settings.objects(key=key).first()
-        if not res:
-            return default
-        return res.value
+        return res.value if res else default
 
     @classmethod
     def get_by_prefix(
@@ -35,9 +33,7 @@ class Settings(DbModelMixin, Document):
         key_prefix = key_prefix.strip(sep)
         query = Q(key=key_prefix) | Q(key__startswith=key_prefix + sep)
         res = Settings.objects(query)
-        if not res:
-            return default
-        return [(x.key, x.value) for x in res]
+        return [(x.key, x.value) for x in res] if res else default
 
     @classmethod
     def set_or_add_value(cls, key: str, value: Any, sep: str = ".") -> bool:

@@ -245,15 +245,13 @@ class TestModelsService(TestService):
         )
 
     def _create_task(self, **kwargs):
-        task_id = self.create_temp(
+        return self.create_temp(
             service="tasks",
             type=kwargs.pop("type", 'testing'),
             name=kwargs.pop("name", 'server-test'),
             input=kwargs.pop("input", dict(view={})),
             **kwargs,
         )
-
-        return task_id
 
     def _create_task_and_model(self):
         execution_model_id = self.create_temp(

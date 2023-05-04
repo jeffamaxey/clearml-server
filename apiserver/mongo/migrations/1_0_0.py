@@ -29,8 +29,7 @@ def _migrate_task_models(db: Database):
     for doc in tasks.find(filter=query, projection=[*fields.values(), models_field]):
         set_commands = {}
         for mode, field in fields.items():
-            value = nested_get(doc, field.split("."))
-            if value:
+            if value := nested_get(doc, field.split(".")):
                 name = TaskModelNames[mode]
                 model_item = {"model": value, "name": name, "updated": now}
                 existing_models = nested_get(doc, (models_field, mode), default=[])
@@ -62,8 +61,7 @@ def _migrate_docker_cmd(db: Database):
 
     for doc in tasks.find(filter=query, projection=(docker_cmd_field,)):
         set_commands = {}
-        docker_cmd = nested_get(doc, docker_cmd_field.split("."))
-        if docker_cmd:
+        if docker_cmd := nested_get(doc, docker_cmd_field.split(".")):
             image, _, arguments = docker_cmd.partition(" ")
             set_commands["container"] = {"image": image, "arguments": arguments}
 

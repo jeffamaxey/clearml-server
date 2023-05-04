@@ -45,15 +45,15 @@ def validate_id(cls, company, **kwargs):
     """
     ids = set(kwargs.values())
     objs = list(cls.objects(company=company, id__in=ids).only('id'))
-    missing = ids - set(x.id for x in objs)
+    missing = ids - {x.id for x in objs}
     if not missing:
         return
     id_to_name = {}
     for name, obj_id in kwargs.items():
         id_to_name.setdefault(obj_id, []).append(name)
     raise errors.bad_request.ValidationError(
-        'Invalid {} ids'.format(cls.__name__.lower()),
-        **{name: obj_id for obj_id in missing for name in id_to_name[obj_id]}
+        f'Invalid {cls.__name__.lower()} ids',
+        **{name: obj_id for obj_id in missing for name in id_to_name[obj_id]},
     )
 
 

@@ -27,7 +27,7 @@ class EventSettings:
     @classproperty
     def state_expiration_sec(self):
         return config.get(
-            f"services.events.events_retrieval.state_expiration_sec", 3600
+            "services.events.events_retrieval.state_expiration_sec", 3600
         )
 
     @classproperty
@@ -46,9 +46,7 @@ def get_index_name(company_id: str, event_type: str):
 
 def check_empty_data(es: Elasticsearch, company_id: str, event_type: EventType) -> bool:
     es_index = get_index_name(company_id, event_type.value)
-    if not es.indices.exists(es_index):
-        return True
-    return False
+    return not es.indices.exists(es_index)
 
 
 def search_company_events(

@@ -74,10 +74,7 @@ class PropsMixin(object):
                 return cls_.owner_document
 
             doc_cls = PropsMixin._document_classes.get(v)
-            if doc_cls:
-                return doc_cls
-
-            return get_document(v)
+            return doc_cls if doc_cls else get_document(v)
 
         fields = {k: resolve_doc(v) for k, v in res.items()}
 
@@ -112,7 +109,7 @@ class PropsMixin(object):
         for depth, part in enumerate(parts):
             if current_cls is None:
                 raise ValueError(
-                    "Invalid path (non-document encountered at %s)" % parts[: depth - 1]
+                    f"Invalid path (non-document encountered at {parts[:depth - 1]})"
                 )
             try:
                 field_name, field = next(
@@ -121,7 +118,7 @@ class PropsMixin(object):
                     if k == part
                 )
             except StopIteration:
-                raise ValueError("Invalid field path %s" % parts[:depth])
+                raise ValueError(f"Invalid field path {parts[:depth]}")
 
             translated_parts.append(part)
 

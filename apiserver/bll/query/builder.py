@@ -31,6 +31,4 @@ class Builder:
     ) -> Optional[Sequence[Union[int, float]]]:
         if not range_ or set(range_) == {ignore_value}:
             return None
-        if len(range_) < 2:
-            return [range_[0]] * 2
-        return range_
+        return [range_[0]] * 2 if len(range_) < 2 else range_

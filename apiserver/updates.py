@@ -108,8 +108,7 @@ class CheckUpdatesThread(Thread):
                     ex=self.update_interval - timedelta(seconds=60),
                     nx=True,
                 ):
-                    response = self._check_new_version_available()
-                    if response:
+                    if response := self._check_new_version_available():
                         if response.patch_upgrade:
                             log.info(
                                 f"{self.component_name.upper()} new package available: upgrade to v{response.version} "
@@ -121,7 +120,7 @@ class CheckUpdatesThread(Thread):
                                 f" is recommended!"
                             )
             except Exception as ex:
-                log.exception("Failed obtaining updates: " + str(ex))
+                log.exception(f"Failed obtaining updates: {str(ex)}")
 
             sleep(self.update_interval.total_seconds())
 

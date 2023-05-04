@@ -67,8 +67,11 @@ def _get_fields(
 def get_items(cls):
     """ get key/value items from an enum-like class (members represent enumeration key/value) """
 
-    res = {k: v for k, v in getmembers(cls) if not (k.startswith("_") or ismethod(v))}
-    return res
+    return {
+        k: v
+        for k, v in getmembers(cls)
+        if not (k.startswith("_") or ismethod(v))
+    }
 
 
 def get_options(cls):
@@ -97,9 +100,7 @@ def parse_from_call(call_data, fields, cls_fields, discard_none_values=True):
             if desc:
                 if issubclass(desc, Document):
                     if not desc.objects(id=value).only("id"):
-                        raise ParseCallError(
-                            "expecting %s id" % desc.__name__, id=value, field=field
-                        )
+                        raise ParseCallError(f"expecting {desc.__name__} id", id=value, field=field)
                 elif callable(desc):
                     try:
                         desc(value)
@@ -167,7 +168,7 @@ def get_subkey(d, key_path, default=None):
     for i, key in enumerate(keys):
         if not isinstance(d, dict):
             raise KeyError(
-                "Expecting a dict (%s)" % (".".join(keys[:i]) if i else "bad input")
+                f'Expecting a dict ({".".join(keys[:i]) if i else "bad input"})'
             )
         d = d.get(key)
         if d is None:
@@ -187,7 +188,7 @@ def hash_field_name(s):
 def merge_dicts(*dicts):
     base = {}
     for dct in dicts:
-        base.update(dct)
+        base |= dct
     return base
 
 
@@ -200,7 +201,7 @@ def _names_set(*names: str) -> Set[str]:
     """
     Given a list of names return set with names and '-names'
     """
-    return set(names) | set(f"-{name}" for name in names)
+    return set(names) | {f"-{name}" for name in names}
 
 
 system_tag_names = {

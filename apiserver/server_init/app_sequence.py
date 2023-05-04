@@ -66,15 +66,15 @@ class AppSequence:
     def _get_db_instance_key() -> str:
         """build a key that uniquely identifies specific mongo instance"""
         hosts_string = ";".join(sorted(db.get_hosts()))
-        return "db_init_" + md5(hosts_string.encode()).hexdigest()
+        return f"db_init_{md5(hosts_string.encode()).hexdigest()}"
 
     def _init_dbs(self):
         db.initialize()
 
         with distributed_lock(
-            name=self._get_db_instance_key(),
-            timeout=config.get("apiserver.db_init_timout", 120),
-        ):
+                name=self._get_db_instance_key(),
+                timeout=config.get("apiserver.db_init_timout", 120),
+            ):
             upgrade_monitoring = config.get(
                 "apiserver.elastic.upgrade_monitoring.v16_migration_verification", True
             )
@@ -93,7 +93,7 @@ class AppSequence:
                 and (info.es_connection_error or empty_es)
                 and get_last_server_version() < Version("0.16.0")
             ):
-                log.info(f"ES database seems not migrated")
+                log.info("ES database seems not migrated")
                 info.missed_es_upgrade = True
 
             if info.es_connection_error and not info.missed_es_upgrade:

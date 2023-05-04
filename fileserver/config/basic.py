@@ -78,12 +78,11 @@ class BasicConfig:
         paths = [
             Path(expandvars(v)).expanduser() for v in value.split(EXTRA_CONFIG_PATH_SEP)
         ]
-        invalid = [
+        if invalid := [
             path
             for path in paths
             if not path.is_dir() and str(path) != DEFAULT_EXTRA_CONFIG_PATH
-        ]
-        if invalid:
+        ]:
             print(f"WARNING: Invalid paths in {self.extra_config_path_env_key} env var: {' '.join(map(str,invalid))}")
         return [path for path in paths if path.is_dir()]
 

@@ -428,10 +428,16 @@ class APICall(DataContainer):
         :param header: Header name options (more than on supported, listed by priority)
         :param default: Default value if no such headers were found
         """
-        for option in header if isinstance(header, (tuple, list)) else (header,):
-            if option in self._headers:
-                return self._headers[option]
-        return default
+        return next(
+            (
+                self._headers[option]
+                for option in (
+                    header if isinstance(header, (tuple, list)) else (header,)
+                )
+                if option in self._headers
+            ),
+            default,
+        )
 
     def clear_header(self, header):
         """
@@ -629,46 +635,45 @@ class APICall(DataContainer):
             # endpoint returned raw data and no error was detected, return raw data, no fancy dicts
             return self.result.raw_data, self.result.content_type
 
-        else:
-            res = {
-                "meta": {
-                    "id": self.id,
-                    "trx": self.trx,
-                    "endpoint": {
-                        "name": self.endpoint_name,
-                        "requested_version": make_version_number(
-                            self.requested_endpoint_version
-                        ),
-                        "actual_version": make_version_number(
-                            self.actual_endpoint_version
-                        ),
-                    },
-                    "result_code": self.result.code,
-                    "result_subcode": self.result.subcode,
-                    "result_msg": self.result.msg,
-                    "error_stack": self.result.traceback if include_stack else None,
-                    "error_data": self.result.error_data,
-                    **self.extra_meta_fields,
+        res = {
+            "meta": {
+                "id": self.id,
+                "trx": self.trx,
+                "endpoint": {
+                    "name": self.endpoint_name,
+                    "requested_version": make_version_number(
+                        self.requested_endpoint_version
+                    ),
+                    "actual_version": make_version_number(
+                        self.actual_endpoint_version
+                    ),
                 },
-                "data": self.result.data,
-            }
-            if self.content_type.lower() == JSON_CONTENT_TYPE:
-                try:
-                    func = json.dumps if self._json_flags.pop("ensure_ascii", True) else json.dumps_notascii
-                    res = func(res, **(self._json_flags or {}))
-                except Exception as ex:
+                "result_code": self.result.code,
+                "result_subcode": self.result.subcode,
+                "result_msg": self.result.msg,
+                "error_stack": self.result.traceback if include_stack else None,
+                "error_data": self.result.error_data,
+                **self.extra_meta_fields,
+            },
+            "data": self.result.data,
+        }
+        if self.content_type.lower() == JSON_CONTENT_TYPE:
+            try:
+                func = json.dumps if self._json_flags.pop("ensure_ascii", True) else json.dumps_notascii
+                res = func(res, **(self._json_flags or {}))
+            except Exception as ex:
                     # JSON serialization may fail, probably problem with data or error_data so pop it and try again
-                    if not (self.result.data or self.result.error_data):
-                        raise
-                    self.result.data = None
-                    self.result.error_data = None
-                    msg = "Error serializing response data: " + str(ex)
-                    self.set_error_result(
-                        code=500, subcode=0, msg=msg, include_stack=False
-                    )
-                    return self.get_response()
+                if not self.result.data and not self.result.error_data:
+                    raise
+                self.result.data = None
+                self.result.error_data = None
+                msg = f"Error serializing response data: {str(ex)}"
+                self.set_error_result(
+                    code=500, subcode=0, msg=msg, include_stack=False
+                )
+                return self.get_response()
 
-            return res, self.content_type
+        return res, self.content_type
 
     def set_error_result(
         self, msg, code=500, subcode=0, include_stack=False, error_data=None

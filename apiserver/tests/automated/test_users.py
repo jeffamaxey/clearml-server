@@ -55,7 +55,7 @@ class TestUsersService(TestService):
         self._assertUsers((user_3,), users)
 
     def _assertUsers(self, expected: Sequence, users: Sequence):
-        self.assertEqual(set(expected), set(u.id for u in users))
+        self.assertEqual(set(expected), {u.id for u in users})
 
     def test_no_preferences(self):
         user = self.new_user()

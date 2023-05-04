@@ -19,10 +19,10 @@ class ModelBLL:
         qs = Model.objects(**query)
         if only_fields:
             qs = qs.only(*only_fields)
-        model = qs.first()
-        if not model:
+        if model := qs.first():
+            return model
+        else:
             raise errors.bad_request.InvalidModelId(**query)
-        return model
 
     @classmethod
     def publish_model(
@@ -65,8 +65,7 @@ class ModelBLL:
         )
         deleted_model_id = f"{deleted_prefix}{model_id}"
 
-        using_tasks = Task.objects(models__input__model=model_id).only("id")
-        if using_tasks:
+        if using_tasks := Task.objects(models__input__model=model_id).only("id"):
             if not force:
                 raise errors.bad_request.ModelInUse(
                     "as execution model, use force=True to delete",
@@ -122,9 +121,7 @@ class ModelBLL:
         cls.get_company_model_by_id(
             company_id=company_id, model_id=model_id, only_fields=("id",)
         )
-        unarchived = Model.objects(company=company_id, id=model_id).update(
+        return Model.objects(company=company_id, id=model_id).update(
             pull__system_tags=EntityVisibility.archived.value,
             last_update=datetime.utcnow(),
         )
-
-        return unarchived

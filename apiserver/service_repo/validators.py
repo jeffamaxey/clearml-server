@@ -159,6 +159,7 @@ def validate_required_fields(endpoint, call):
     if endpoint.required_fields is None:
         return
 
-    missing = [val for val in endpoint.required_fields if val not in call.data]
-    if missing:
+    if missing := [
+        val for val in endpoint.required_fields if val not in call.data
+    ]:
         raise errors.bad_request.MissingRequiredFields(missing=missing)

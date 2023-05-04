@@ -43,7 +43,7 @@ class Metadata:
         **more_updates,
     ) -> int:
         with TimingContext("mongo", "edit_metadata"):
-            update_cmds = dict()
+            update_cmds = {}
             metadata = cls.metadata_from_api(items)
             if replace_metadata:
                 update_cmds["set__metadata"] = metadata
@@ -100,12 +100,10 @@ class Metadata:
             for key, safe_key in zip(keys, Metadata.escape_paths(keys))
         }
 
-        projection = GetMixin.get_projection(call_data)
-        if projection:
+        if projection := GetMixin.get_projection(call_data):
             GetMixin.set_projection(call_data, Metadata.escape_paths(projection))
 
-        ordering = GetMixin.get_ordering(call_data)
-        if ordering:
+        if ordering := GetMixin.get_ordering(call_data):
             GetMixin.set_ordering(call_data, Metadata.escape_paths(ordering))
 
         return call_data

@@ -128,7 +128,7 @@ class EventMetrics:
                 return_dicts=False,
             )
             if len(task_objs) < len(task_ids):
-                invalid = tuple(set(task_ids) - set(r.id for r in task_objs))
+                invalid = tuple(set(task_ids) - {r.id for r in task_objs})
                 raise errors.bad_request.InvalidTaskId(company=company_id, ids=invalid)
             task_name_by_id = {t.id: t.name for t in task_objs}
 
@@ -258,14 +258,17 @@ class EventMetrics:
             )
 
         aggs_result = es_res.get("aggregations")
-        if not aggs_result:
-            return []
-
-        return [
-            self._build_metric_interval(metric["key"], variant["key"], variant, samples)
-            for metric in aggs_result["metrics"]["buckets"]
-            for variant in metric["variants"]["buckets"]
-        ]
+        return (
+            [
+                self._build_metric_interval(
+                    metric["key"], variant["key"], variant, samples
+                )
+                for metric in aggs_result["metrics"]["buckets"]
+                for variant in metric["variants"]["buckets"]
+            ]
+            if aggs_result
+            else []
+        )
 
     @staticmethod
     def _build_metric_interval(

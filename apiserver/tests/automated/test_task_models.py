@@ -75,9 +75,7 @@ class TestTaskModels(TestService):
             id_ = model.get("model")
             if isinstance(id_, str):
                 return id_
-            if id_ is None or id_ == {}:
-                return None
-            return id_.get("id")
+            return None if id_ is None or id_ == {} else id_.get("id")
 
         def compare_models(actual: Sequence[dict], expected: Sequence[dict]):
             self.assertEqual(
@@ -104,7 +102,7 @@ class TestTaskModels(TestService):
 
     def new_task(self, **kwargs):
         self.update_missing(
-            kwargs, type="testing", name="test task models", input=dict(view=dict())
+            kwargs, type="testing", name="test task models", input=dict(view={})
         )
         return self.create_temp("tasks", **kwargs)
 

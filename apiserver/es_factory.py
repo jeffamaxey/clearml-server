@@ -26,20 +26,20 @@ OVERRIDE_USERNAME_ENV_KEY = ("CLEARML_ELASTIC_SERVICE_USERNAME",)
 
 OVERRIDE_PASSWORD_ENV_KEY = ("CLEARML_ELASTIC_SERVICE_PASSWORD",)
 
-OVERRIDE_HOST = first(filter(None, map(getenv, OVERRIDE_HOST_ENV_KEY)))
-if OVERRIDE_HOST:
+if OVERRIDE_HOST := first(filter(None, map(getenv, OVERRIDE_HOST_ENV_KEY))):
     log.info(f"Using override elastic host {OVERRIDE_HOST}")
 
-OVERRIDE_PORT = first(filter(None, map(getenv, OVERRIDE_PORT_ENV_KEY)))
-if OVERRIDE_PORT:
+if OVERRIDE_PORT := first(filter(None, map(getenv, OVERRIDE_PORT_ENV_KEY))):
     log.info(f"Using override elastic port {OVERRIDE_PORT}")
 
-OVERRIDE_USERNAME = first(filter(None, map(getenv, OVERRIDE_USERNAME_ENV_KEY)))
-if OVERRIDE_USERNAME:
+if OVERRIDE_USERNAME := first(
+    filter(None, map(getenv, OVERRIDE_USERNAME_ENV_KEY))
+):
     log.info(f"Using override elastic username {OVERRIDE_USERNAME}")
 
-OVERRIDE_PASSWORD = first(filter(None, map(getenv, OVERRIDE_PASSWORD_ENV_KEY)))
-if OVERRIDE_PASSWORD:
+if OVERRIDE_PASSWORD := first(
+    filter(None, map(getenv, OVERRIDE_PASSWORD_ENV_KEY))
+):
     log.info("Using override elastic password ********")
 
 _instances = {}
@@ -101,15 +101,14 @@ class ESFactory:
         if not elastic_user:
             return None
 
-        elastic_password = OVERRIDE_PASSWORD or config.get(
+        if elastic_password := OVERRIDE_PASSWORD or config.get(
             "secure.elastic.password", None
-        )
-        if not elastic_password:
+        ):
+            return elastic_user, elastic_password
+        else:
             raise MissingPasswordForElasticUser(
                 f"cluster={cluster_name}, username={elastic_user}"
             )
-
-        return elastic_user, elastic_password
 
     @classmethod
     def get_all_cluster_names(cls):

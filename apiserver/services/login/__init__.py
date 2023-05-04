@@ -12,8 +12,7 @@ from apiserver.service_repo.auth.fixed_user import FixedUser
 
 @endpoint("login.supported_modes", response_data_model=GetSupportedModesResponse)
 def supported_modes(call: APICall, _, __: GetSupportedModesRequest):
-    guest_user = FixedUser.get_guest_user()
-    if guest_user:
+    if guest_user := FixedUser.get_guest_user():
         guest = BasicGuestMode(
             enabled=True,
             name=guest_user.name,

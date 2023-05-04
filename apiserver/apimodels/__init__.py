@@ -76,9 +76,7 @@ class DictField(fields.BaseField):
 
     def get_default_value(self):
         default = super(DictField, self).get_default_value()
-        if default is None and not self.required:
-            return {}
-        return default
+        return {} if default is None and not self.required else default
 
     @staticmethod
     def _assign_types(value_types):
@@ -110,15 +108,14 @@ class DictField(fields.BaseField):
     def _cast_value(self, value):
         if isinstance(value, self.value_types):
             return value
-        else:
-            if len(self.value_types) != 1:
-                tpl = 'Cannot decide which type to choose from "{types}".'
-                raise jsonmodels.errors.ValidationError(
-                    tpl.format(
-                        types=', '.join([t.__name__ for t in self.value_types])
-                    )
+        if len(self.value_types) != 1:
+            tpl = 'Cannot decide which type to choose from "{types}".'
+            raise jsonmodels.errors.ValidationError(
+                tpl.format(
+                    types=', '.join([t.__name__ for t in self.value_types])
                 )
-            return self.value_types[0](**value)
+            )
+        return self.value_types[0](**value)
 
     def validate(self, value):
         super(DictField, self).validate(value)
@@ -277,9 +274,7 @@ class MongoengineFieldsDict(DictField):
 
     @staticmethod
     def _normalize_mongo_value(value):
-        if isinstance(value, BaseDocument):
-            return value.to_mongo()
-        return value
+        return value.to_mongo() if isinstance(value, BaseDocument) else value
 
     @classmethod
     def _normalize_mongo_field_path(cls, path, value):

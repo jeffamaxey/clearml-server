@@ -10,7 +10,7 @@ class TestPagingAndScrolling(TestService):
         self.task_ids = self._create_tasks()
 
     def _create_tasks(self):
-        tasks = [
+        return [
             self._temp_task(
                 name=f"{self.name_prefix}{i}",
                 hyperparams={
@@ -26,7 +26,6 @@ class TestPagingAndScrolling(TestService):
             )
             for i in range(18)
         ]
-        return tasks
 
     def test_paging(self):
         page_size = 10
@@ -75,6 +74,6 @@ class TestPagingAndScrolling(TestService):
             name=name,
             comment="Test task",
             type="testing",
-            input=dict(view=dict()),
-            **kwargs,
+            input=dict(view={}),
+            **kwargs
         )

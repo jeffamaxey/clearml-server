@@ -111,8 +111,7 @@ class BasicConfig:
         ]
 
         if value is not default_paths:
-            invalid = [path for path in paths if not path.is_dir()]
-            if invalid:
+            if invalid := [path for path in paths if not path.is_dir()]:
                 print(
                     f"WARNING: Invalid paths in {self.extra_config_path_override_var} env var: {' '.join(map(str, invalid))}"
                 )
@@ -170,10 +169,10 @@ class BasicConfig:
 
         if not conf_root.is_dir():
             if self.verbose:
-                if not conf_root.exists():
-                    print(f"No config in {conf_root}")
-                else:
+                if conf_root.exists():
                     print(f"Not a directory: {conf_root}")
+                else:
+                    print(f"No config in {conf_root}")
             return conf
 
         if self.verbose:
@@ -202,10 +201,10 @@ class BasicConfig:
             raise
 
     def initialize_logging(self):
-        logging_config = self.get("logging", None)
-        if not logging_config:
+        if logging_config := self.get("logging", None):
+            logging.config.dictConfig(logging_config)
+        else:
             return
-        logging.config.dictConfig(logging_config)
 
 
 class ConfigurationError(Exception):

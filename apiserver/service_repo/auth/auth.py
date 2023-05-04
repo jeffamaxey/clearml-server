@@ -45,7 +45,7 @@ def authorize_token(jwt_token, *_, **__):
     except jwt.InvalidTokenError as ex:
         raise errors.unauthorized.InvalidToken("invalid jwt token", reason=ex.args[0])
     except ValueError as ex:
-        log.exception("Failed while processing token: %s" % ex.args[0])
+        log.exception(f"Failed while processing token: {ex.args[0]}")
         raise errors.unauthorized.InvalidToken(
             "failed processing token", reason=ex.args[0]
         )
@@ -75,11 +75,10 @@ def authorize_credentials(auth_data, service, action, call):
                     raise errors.unauthorized.InvalidCredentials(
                         "bad username or password"
                     )
-            else:
-                if secret_key != fixed_user.password:
-                    raise errors.unauthorized.InvalidCredentials(
-                        "bad username or password"
-                    )
+            elif secret_key != fixed_user.password:
+                raise errors.unauthorized.InvalidCredentials(
+                    "bad username or password"
+                )
 
             if fixed_user.is_guest and not FixedUser.is_guest_endpoint(service, action):
                 raise errors.unauthorized.InvalidCredentials(
@@ -122,9 +121,7 @@ def authorize_credentials(auth_data, service, action, call):
         company_name=company.name,
     )
 
-    basic = Basic(user_key=access_key, identity=identity)
-
-    return basic
+    return Basic(user_key=access_key, identity=identity)
 
 
 def authorize_impersonation(user, identity, service, action, call):
@@ -132,11 +129,10 @@ def authorize_impersonation(user, identity, service, action, call):
     if not user:
         raise ValueError("missing user")
 
-    company = Company.objects(id=user.company).only("id", "name").first()
-    if not company:
+    if company := Company.objects(id=user.company).only("id", "name").first():
+        return Payload(auth_type=None, identity=identity)
+    else:
         raise errors.unauthorized.InvalidCredentials("invalid user company")
-
-    return Payload(auth_type=None, identity=identity)
 
 
 def compare_secret_key_hash(secret_key: str, hashed_secret: str) -> bool:

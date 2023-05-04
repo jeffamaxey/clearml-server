@@ -116,7 +116,7 @@ class EventsIterator:
         if from_key_value:
             es_req["search_after"] = [from_key_value]
 
-        with translate_errors_context(), TimingContext("es", "get_task_events"):
+        with (translate_errors_context(), TimingContext("es", "get_task_events")):
             es_result = search_company_events(
                 self.es,
                 company_id=company_id,
@@ -154,7 +154,7 @@ class EventsIterator:
                 # then it is already present in the events
                 return events, hits_total
 
-            already_present_ids = set(hit["_id"] for hit in hits)
+            already_present_ids = {hit["_id"] for hit in hits}
             last_second_events = [
                 hit["_source"]
                 for hit in last_second_hits

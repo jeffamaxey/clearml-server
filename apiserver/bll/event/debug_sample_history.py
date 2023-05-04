@@ -92,8 +92,9 @@ class DebugSampleHistory:
         state.variant = image["variant"]
         state.iteration = image["iter"]
         res.event = image
-        var_state = first(s for s in state.variant_states if s.name == state.variant)
-        if var_state:
+        if var_state := first(
+            s for s in state.variant_states if s.name == state.variant
+        ):
             res.min_iteration = var_state.min_iteration
             res.max_iteration = var_state.max_iteration
 
@@ -135,11 +136,10 @@ class DebugSampleHistory:
                 self.es, company_id=company_id, event_type=self.EVENT_TYPE, body=es_req
             )
 
-        hits = nested_get(es_res, ("hits", "hits"))
-        if not hits:
+        if hits := nested_get(es_res, ("hits", "hits")):
+            return hits[0]["_source"]
+        else:
             return
-
-        return hits[0]["_source"]
 
     def _get_next_for_another_iteration(
         self, company_id: str, navigate_earlier: bool, state: DebugSampleHistoryState
@@ -150,12 +150,6 @@ class DebugSampleHistory:
         The variants for which the image falls in invalid range are discarded
         If no suitable image is found then None is returned
         """
-
-        must_conditions = [
-            {"term": {"task": state.task}},
-            {"term": {"metric": state.metric}},
-            {"exists": {"field": "url"}},
-        ]
 
         if navigate_earlier:
             range_operator = "lt"
@@ -184,9 +178,15 @@ class DebugSampleHistory:
             }
             for v in variants
         ]
-        must_conditions.append({"bool": {"should": variants_conditions}})
-        must_conditions.append({"range": {"iter": {range_operator: state.iteration}}},)
-
+        must_conditions = [
+            {"term": {"task": state.task}},
+            {"term": {"metric": state.metric}},
+            {"exists": {"field": "url"}},
+            *(
+                {"bool": {"should": variants_conditions}},
+                {"range": {"iter": {range_operator: state.iteration}}},
+            ),
+        ]
         es_req = {
             "size": 1,
             "sort": [{"iter": order}, {"variant": order}],
@@ -199,11 +199,10 @@ class DebugSampleHistory:
                 self.es, company_id=company_id, event_type=self.EVENT_TYPE, body=es_req
             )
 
-        hits = nested_get(es_res, ("hits", "hits"))
-        if not hits:
+        if hits := nested_get(es_res, ("hits", "hits")):
+            return hits[0]["_source"]
+        else:
             return
-
-        return hits[0]["_source"]
 
     def get_debug_image_for_variant(
         self,

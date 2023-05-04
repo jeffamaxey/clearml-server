@@ -90,7 +90,7 @@ class CustomFloatField(FloatField):
         super(CustomFloatField, self).validate(value)
 
         if self.greater_than is not None and value <= self.greater_than:
-            self.error("Float value must be greater than %s" % str(self.greater_than))
+            self.error(f"Float value must be greater than {str(self.greater_than)}")
 
 
 class CanonicEmailField(EmailField):

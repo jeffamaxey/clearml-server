@@ -26,8 +26,7 @@ def _ensure_default_queue(company):
     If no queue is present for the company then
     create a new one and mark it as a default
     """
-    queue = Queue.objects(company=company).only("id").first()
-    if queue:
+    if queue := Queue.objects(company=company).only("id").first():
         return
 
     QueueBLL.create(company, name="default", system_tags=["default"])

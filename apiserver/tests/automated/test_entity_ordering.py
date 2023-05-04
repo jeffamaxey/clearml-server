@@ -85,10 +85,7 @@ class TestEntityOrdering(TestService):
         if is_numeric:
             vals = list(map(int, vals))
 
-        if ascending:
-            cmp = operator.le
-        else:
-            cmp = operator.ge
+        cmp = operator.le if ascending else operator.ge
         self.assertTrue(all(cmp(i, j) for i, j in zip(vals, vals[1:])))
 
     def _get_value_for_path(self, data: Mapping, field_path: Sequence[str]):
@@ -108,10 +105,10 @@ class TestEntityOrdering(TestService):
             comment=self.test_comment,
             **kwargs,
         ).tasks
-        self.assertLessEqual(set(self.task_ids), set(t.id for t in tasks))
+        self.assertLessEqual(set(self.task_ids), {t.id for t in tasks})
         if order_by and valid_order:
             # test that the output is correctly ordered
-            field_name = order_by if not order_by.startswith("-") else order_by[1:]
+            field_name = order_by[1:] if order_by.startswith("-") else order_by
             field_vals = [
                 self._get_value_for_path(t, field_name.split(".")) for t in tasks
             ]
@@ -139,6 +136,6 @@ class TestEntityOrdering(TestService):
             name="test",
             comment=self.test_comment,
             type="testing",
-            input=dict(view=dict()),
-            **kwargs,
+            input=dict(view={}),
+            **kwargs
         )

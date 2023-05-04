@@ -40,7 +40,7 @@ def _apply_migrations(log: Logger):
     """
     log = log.getChild(Path(__file__).stem)
 
-    log.info(f"Started mongodb migrations")
+    log.info("Started mongodb migrations")
 
     if not _migration_dir.is_dir():
         raise ValueError(f"Invalid migration dir {_migration_dir}")

@@ -147,7 +147,7 @@ class TestTaskDebugImages(TestService):
                 iteration=1,
                 metric=metric,
                 variant=variant,
-                url=f"{metric}_{variant}_{1}",
+                url=f"{metric}_{variant}_1",
             )
             for metric, variants in metrics.items()
             for variant in variants
@@ -168,7 +168,7 @@ class TestTaskDebugImages(TestService):
                 iteration=2,
                 metric=metric,
                 variant=variant,
-                url=f"{metric}_{variant}_{2}",
+                url=f"{metric}_{variant}_2",
             )
             for metric, variants in update.items()
             for variant in variants
@@ -188,8 +188,6 @@ class TestTaskDebugImages(TestService):
             refresh=True,
         )
 
-        pass
-
     def _assertTaskMetrics(
         self,
         task: str,
@@ -205,12 +203,15 @@ class TestTaskDebugImages(TestService):
             self.assertTrue(all(m.iterations == [] for m in res.metrics))
             return res.scroll_id
 
-        expected_variants = set((m, var) for m, vars_ in expected_metrics.items() for var in vars_)
+        expected_variants = {
+            (m, var) for m, vars_ in expected_metrics.items() for var in vars_
+        }
         for metric_data in res.metrics:
             self.assertEqual(len(metric_data.iterations), iterations)
             for it_data in metric_data.iterations:
                 self.assertEqual(
-                    set((e.metric, e.variant) for e in it_data.events), expected_variants
+                    {(e.metric, e.variant) for e in it_data.events},
+                    expected_variants,
                 )
 
         return res.scroll_id

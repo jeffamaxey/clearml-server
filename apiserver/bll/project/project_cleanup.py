@@ -38,11 +38,12 @@ def validate_project_delete(company: str, project_id: str):
         raise errors.bad_request.InvalidProjectId(id=project_id)
 
     project_ids = _ids_with_children([project_id])
-    ret = {}
-    for cls in (Task, Model):
-        ret[f"{cls.__name__.lower()}s"] = cls.objects(
+    ret = {
+        f"{cls.__name__.lower()}s": cls.objects(
             project__in=project_ids,
         ).count()
+        for cls in (Task, Model)
+    }
     for cls in (Task, Model):
         ret[f"non_archived_{cls.__name__.lower()}s"] = cls.objects(
             project__in=project_ids,
@@ -67,11 +68,10 @@ def delete_project(
             (Task, errors.bad_request.ProjectHasTasks),
             (Model, errors.bad_request.ProjectHasModels),
         ):
-            non_archived = cls.objects(
+            if non_archived := cls.objects(
                 project__in=project_ids,
                 system_tags__nin=[EntityVisibility.archived.value],
-            ).only("id")
-            if non_archived:
+            ).only("id"):
                 raise error("use force=true to delete", id=project_id)
 
     if not delete_contents:
@@ -158,8 +158,7 @@ def _delete_models(projects: Sequence[str]) -> Tuple[int, Set[str]]:
             upsert=False,
         )
 
-        model_tasks = list({m.task for m in models if m.task})
-        if model_tasks:
+        if model_tasks := list({m.task for m in models if m.task}):
             Task._get_collection().update_many(
                 filter={
                     "_id": {"$in": model_tasks},

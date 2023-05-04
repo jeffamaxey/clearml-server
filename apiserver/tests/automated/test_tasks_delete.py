@@ -167,7 +167,7 @@ class TestTasksResetDelete(TestService):
             for iteration in range(5)
         ]
         self.send_batch(events)
-        return set(ev["url"] for ev in events)
+        return {ev["url"] for ev in events}
 
     def send_plot_events(self, task) -> Set[str]:
         plots = [
@@ -206,7 +206,7 @@ class TestTasksResetDelete(TestService):
 
     def new_task(self, **kwargs):
         self.update_missing(
-            kwargs, name=self.name, type="testing", input=dict(view=dict())
+            kwargs, name=self.name, type="testing", input=dict(view={})
         )
         return self.create_temp("tasks", delete_params=self.delete_params, **kwargs,)
 

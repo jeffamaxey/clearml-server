@@ -84,9 +84,8 @@ class Generator(object):
         digest_file = self._path / "digest.md5"
         if self._use_md5:
             digest = self._calc_digest(errors)
-            if digest_file.is_file():
-                if digest_file.read_text() == digest:
-                    return
+            if digest_file.is_file() and digest_file.read_text() == digest:
+                return
 
         self._make_init(errors)
         for (code, section_name), subcodes in errors.items():

@@ -145,7 +145,7 @@ class PrePopulate:
                 return True, files
 
         except Exception as ex:
-            print("Error reading map file. " + str(ex))
+            print(f"Error reading map file. {str(ex)}")
             return True, files
 
         return False, files
@@ -226,7 +226,7 @@ class PrePopulate:
             map_file, entities=entities, metadata_hash=metadata_hash
         )
         if not updated:
-            print(f"There are no updates from the last export")
+            print("There are no updates from the last export")
             return old_files
 
         for old in old_files:
@@ -316,7 +316,7 @@ class PrePopulate:
     @classmethod
     def upgrade_zip(cls, filename) -> Sequence:
         hash_ = hashlib.md5()
-        task_file = cls._get_base_filename(cls.task_cls) + ".json"
+        task_file = f"{cls._get_base_filename(cls.task_cls)}.json"
         temp_file = Path("temp.zip")
         file = Path(filename)
         with ZipFile(file) as reader, ZipFile(temp_file, **cls.zip_args) as writer:
@@ -478,8 +478,7 @@ class PrePopulate:
             for models in (task.models.input, task.models.output)
             if models
         )
-        model_ids = {tm.model for tm in task_models}
-        if model_ids:
+        if model_ids := {tm.model for tm in task_models}:
             print("Reading models...")
             entities[cls.model_cls] = set(cls.model_cls.objects(id__in=list(model_ids)))
 
@@ -487,9 +486,11 @@ class PrePopulate:
 
     @classmethod
     def _filter_out_export_tags(cls, tags: Sequence[str]) -> Sequence[str]:
-        if not tags:
-            return tags
-        return [tag for tag in tags if not tag.startswith(cls.export_tag_prefix)]
+        return (
+            [tag for tag in tags if not tag.startswith(cls.export_tag_prefix)]
+            if tags
+            else tags
+        )
 
     @classmethod
     def _cleanup_model(cls, model: Model):
@@ -554,8 +555,7 @@ class PrePopulate:
                     for event in res.events:
                         event_type = event.get("type")
                         if event_type == EventType.metrics_image.value:
-                            url = cls._get_fixed_url(event.get("url"))
-                            if url:
+                            if url := cls._get_fixed_url(event.get("url")):
                                 event["url"] = url
                                 artifacts.append(url)
                         elif event_type == EventType.metrics_plot.value:
@@ -582,7 +582,7 @@ class PrePopulate:
             fixed.host += ".s3.amazonaws.com"
             return fixed.url
         except Exception as ex:
-            print(f"Failed processing link {url}. " + str(ex))
+            print(f"Failed processing link {url}. {str(ex)}")
             return url
 
     @classmethod
@@ -620,7 +620,7 @@ class PrePopulate:
     def _export_artifacts(
         cls, writer: ZipFile, artifacts: Sequence[str], artifacts_path: str
     ):
-        unique_paths = set(unquote(str(furl(artifact).path)) for artifact in artifacts)
+        unique_paths = {unquote(str(furl(artifact).path)) for artifact in artifacts}
         print(f"Writing {len(unique_paths)} artifacts into {writer.filename}")
         for path in unique_paths:
             path = path.lstrip("/")
@@ -659,7 +659,7 @@ class PrePopulate:
                         cls_, item, base_filename, writer, hash_
                     )
                 )
-            filename = base_filename + ".json"
+            filename = f"{base_filename}.json"
             print(f"Writing {len(items)} items into {writer.filename}:{filename}")
             with BytesIO() as f:
                 with cls.JsonLinesWriter(f) as w:
@@ -678,17 +678,15 @@ class PrePopulate:
     @staticmethod
     def json_lines(file: IO[bytes]):
         for line in file:
-            clean = (
+            if clean := (
                 line.decode("utf-8")
                 .rstrip("\r\n")
                 .strip()
                 .lstrip("[")
                 .rstrip(",]")
                 .strip()
-            )
-            if not clean:
-                continue
-            yield clean
+            ):
+                yield clean
 
     @classmethod
     def _import(
@@ -703,7 +701,7 @@ class PrePopulate:
         Import entities and events from the zip file
         Start from entities since event import will require the tasks already in DB
         """
-        event_file_ending = cls.events_file_suffix + ".json"
+        event_file_ending = f"{cls.events_file_suffix}.json"
         entity_files = (
             fi
             for fi in reader.filelist
@@ -716,8 +714,9 @@ class PrePopulate:
             with reader.open(entity_file) as f:
                 full_name = splitext(entity_file.orig_filename)[0]
                 print(f"Reading {reader.filename}:{full_name}...")
-                res = cls._import_entity(f, full_name, company_id, user_id, metadata)
-                if res:
+                if res := cls._import_entity(
+                    f, full_name, company_id, user_id, metadata
+                ):
                     tasks = res
 
         if sort_tasks_by_last_updated:
@@ -774,8 +773,7 @@ class PrePopulate:
             ("execution.model_desc", "configuration", None),
         ):
             legacy_path = old_param_field.split(".")
-            legacy = nested_get(task_data, legacy_path)
-            if legacy:
+            if legacy := nested_get(task_data, legacy_path):
                 for full_name, value in legacy.items():
                     section, name = split_param_name(full_name, default_section)
                     new_path = list(filter(None, (new_param_field, section, name)))
@@ -848,8 +846,7 @@ class PrePopulate:
             cls.model_cls: cls._upgrade_model_data,
         }
         for item in cls.json_lines(f):
-            upgrade_func = data_upgrade_funcs.get(cls_)
-            if upgrade_func:
+            if upgrade_func := data_upgrade_funcs.get(cls_):
                 item = json.dumps(upgrade_func(json.loads(item)))
 
             doc = cls_.from_json(item, created=True)
@@ -858,8 +855,7 @@ class PrePopulate:
             if hasattr(doc, "company"):
                 doc.company = company_id
             if isinstance(doc, cls.project_cls):
-                override_project_name = metadata.get("project_name", None)
-                if override_project_name:
+                if override_project_name := metadata.get("project_name", None):
                     if override_project_count:
                         override_project_name = (
                             f"{override_project_name} {override_project_count + 1}"
@@ -885,7 +881,7 @@ class PrePopulate:
 
     @classmethod
     def _import_events(cls, f: IO[bytes], full_name: str, company_id: str, _):
-        _, _, task_id = full_name[0 : -len(cls.events_file_suffix)].rpartition("_")
+        _, _, task_id = full_name[:-len(cls.events_file_suffix)].rpartition("_")
         print(f"Writing events for task {task_id} into database")
         for events_chunk in chunked_iter(cls.json_lines(f), 1000):
             events = [json.loads(item) for item in events_chunk]

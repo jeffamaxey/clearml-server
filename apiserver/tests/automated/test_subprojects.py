@@ -17,7 +17,7 @@ class TestSubProjects(TestService):
         user2_client = APIClient(
             api_key=config.get("apiclient.user_auth_only"),
             secret_key=config.get("apiclient.user_auth_only_secret"),
-            base_url=f"http://localhost:8008/v2.13",
+            base_url="http://localhost:8008/v2.13",
         )
 
         child = self._temp_project(name="Aggregation/Pr1", client=user2_client)
@@ -159,7 +159,7 @@ class TestSubProjects(TestService):
 
         # global search finds all or below the specified level
         res = self.api.projects.get_all_ex(name="project1").projects
-        self.assertEqual(set(p.id for p in res), {project1, project2})
+        self.assertEqual({p.id for p in res}, {project1, project2})
         project4 = self._temp_project(name="project1/project2/project1")
         res = self.api.projects.get_all_ex(name="project1", parent=[project2]).projects
         self.assertEqual([p.id for p in res], [project4])
@@ -195,7 +195,7 @@ class TestSubProjects(TestService):
         res = self.api.projects.get_all_ex(
             id=[project1, project2], include_stats=True
         ).projects
-        self.assertEqual(set(p.id for p in res), {project1, project2})
+        self.assertEqual({p.id for p in res}, {project1, project2})
         res1 = next(p for p in res if p.id == project1)
         self.assertEqual(res1.stats["active"]["status_count"]["created"], 0)
         self.assertEqual(res1.stats["active"]["status_count"]["stopped"], 2)
@@ -255,8 +255,8 @@ class TestSubProjects(TestService):
             delete_params=self.delete_params,
             type="testing",
             name=db_id(),
-            input=dict(view=dict()),
-            **kwargs,
+            input=dict(view={}),
+            **kwargs
         )
 
     def _temp_model(self, **kwargs):

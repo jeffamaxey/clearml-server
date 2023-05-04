@@ -21,7 +21,7 @@ class ParameterKeyEscaper:
             value = value.replace(c, r)
 
         if value.startswith("_"):
-            value = "%_" + value[1:]
+            value = f"%_{value[1:]}"
 
         return value
 
@@ -37,12 +37,10 @@ class ParameterKeyEscaper:
         value = "%".join(map(cls._unescape, value.split("%%")))
 
         if value.startswith("%_"):
-            value = "_" + value[2:]
+            value = f"_{value[2:]}"
 
         return value
 
 
 def mongoengine_safe(field_name):
-    if field_name in MATCH_OPERATORS:
-        return field_name + "__"
-    return field_name
+    return f"{field_name}__" if field_name in MATCH_OPERATORS else field_name

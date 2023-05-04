@@ -59,8 +59,7 @@ def _ensure_backend_user(user_id: str, company_id: str, user_name: str):
 
 
 def ensure_fixed_user(user: FixedUser, log: Logger):
-    db_user = User.objects(company=user.company, id=user.user_id).first()
-    if db_user:
+    if db_user := User.objects(company=user.company, id=user.user_id).first():
         # noinspection PyBroadException
         try:
             log.info(f"Updating user name: {user.name}")

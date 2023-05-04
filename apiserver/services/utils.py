@@ -13,14 +13,18 @@ from apiserver.utilities.partial_version import PartialVersion
 
 
 def get_tags_filter_dictionary(input_: Filter) -> dict:
-    if not input_:
-        return {}
-
-    return {
-        field: vals
-        for field, vals in (("tags", input_.tags), ("system_tags", input_.system_tags))
-        if vals
-    }
+    return (
+        {
+            field: vals
+            for field, vals in (
+                ("tags", input_.tags),
+                ("system_tags", input_.system_tags),
+            )
+            if vals
+        }
+        if input_
+        else {}
+    )
 
 
 def sort_tags_response(ret: dict) -> dict:
@@ -38,13 +42,11 @@ def conform_output_tags(call: APICall, documents: Union[dict, Sequence[dict]]):
     merge_tags = call.requested_endpoint_version < PartialVersion("2.3")
     for doc in documents:
         if merge_tags:
-            system_tags = doc.get("system_tags")
-            if system_tags:
+            if system_tags := doc.get("system_tags"):
                 doc["tags"] = list(set(doc.get("tags", [])) | set(system_tags))
 
         for field in ("system_tags", "tags"):
-            tags = doc.get(field)
-            if tags:
+            if tags := doc.get(field):
                 doc[field] = sorted(tags)
 
 
@@ -88,27 +90,30 @@ def _upgrade_tags(call: APICall, tags: Sequence, system_tags: Sequence):
 
 def validate_tags(tags: Sequence[str], system_tags: Sequence[str]):
     for values in filter(None, (tags, system_tags)):
-        unsupported = [
-            t for t in values if t.startswith(GetMixin.ListFieldBucketHelper.op_prefix)
-        ]
-        if unsupported:
+        if unsupported := [
+            t
+            for t in values
+            if t.startswith(GetMixin.ListFieldBucketHelper.op_prefix)
+        ]:
             raise errors.bad_request.FieldsValueError(
                 "unsupported tag prefix", values=unsupported
             )
 
 
 def escape_dict(data: dict) -> dict:
-    if not data:
-        return data
-
-    return {ParameterKeyEscaper.escape(k): v for k, v in data.items()}
+    return (
+        {ParameterKeyEscaper.escape(k): v for k, v in data.items()}
+        if data
+        else data
+    )
 
 
 def unescape_dict(data: dict) -> dict:
-    if not data:
-        return data
-
-    return {ParameterKeyEscaper.unescape(k): v for k, v in data.items()}
+    return (
+        {ParameterKeyEscaper.unescape(k): v for k, v in data.items()}
+        if data
+        else data
+    )
 
 
 def escape_dict_field(fields: dict, path: Union[str, Sequence[str]]):
@@ -214,10 +219,9 @@ class DockerCmdBackwardsCompatibility:
             if not container or not container.get("image"):
                 continue
 
-            docker_cmd = " ".join(
+            if docker_cmd := " ".join(
                 filter(None, map(container.get, ("image", "arguments")))
-            )
-            if docker_cmd:
+            ):
                 nested_set(task, cls.field, docker_cmd)
 
 
@@ -225,14 +229,13 @@ def escape_metadata(document: dict):
     """
     Escape special characters in metadata keys
     """
-    metadata = document.get("metadata")
-    if not metadata:
+    if metadata := document.get("metadata"):
+        document["metadata"] = {
+            ParameterKeyEscaper.escape(k): v
+            for k, v in metadata.items()
+        }
+    else:
         return
-
-    document["metadata"] = {
-        ParameterKeyEscaper.escape(k): v
-        for k, v in metadata.items()
-    }
 
 
 def unescape_metadata(call: APICall, documents: Union[dict, Sequence[dict]]):
@@ -248,11 +251,8 @@ def unescape_metadata(call: APICall, documents: Union[dict, Sequence[dict]]):
             doc["metadata"] = []
             continue
 
-        metadata = doc.get("metadata")
-        if not metadata:
-            continue
-
-        doc["metadata"] = {
-            ParameterKeyEscaper.unescape(k): v
-            for k, v in metadata.items()
-        }
+        if metadata := doc.get("metadata"):
+            doc["metadata"] = {
+                ParameterKeyEscaper.unescape(k): v
+                for k, v in metadata.items()
+            }

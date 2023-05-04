@@ -6,6 +6,8 @@ from apiserver.database.model import AttributedDocument
 from apiserver.database.model.base import GetMixin
 
 
+
+
 class Project(AttributedDocument):
 
     get_all_query_options = GetMixin.QueryParameterOptions(
@@ -22,7 +24,7 @@ class Project(AttributedDocument):
             "path",
             ("company", "name"),
             {
-                "name": "%s.project.main_text_index" % Database.backend,
+                "name": f"{Database.backend}.project.main_text_index",
                 "fields": ["$name", "$id", "$description"],
                 "default_language": "english",
                 "weights": {"name": 10, "id": 10, "description": 10},

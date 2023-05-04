@@ -41,7 +41,7 @@ class SetFieldsResolver:
             {
                 f: fname
                 for f, modifier, dunder, fname in (
-                    (f,) + f.partition("__") for f in set_fields.keys()
+                    (f,) + f.partition("__") for f in set_fields
                 )
                 if dunder and modifier in self.SET_MODIFIERS
             }
@@ -68,7 +68,7 @@ class SetFieldsResolver:
         Returns the names of the fields that had min/max modifiers
         in the format suitable for projection (dot separated)
         """
-        return set(name.replace("__", ".") for name in self.fields.values())
+        return {name.replace("__", ".") for name in self.fields.values()}
 
 
 @functools.lru_cache()
@@ -115,8 +115,8 @@ T = TypeVar("T")
 def run_batch_operation(
     func: Callable[[str], T], ids: Sequence[str]
 ) -> Tuple[Sequence[Tuple[str, T]], Sequence[dict]]:
-    results = list()
-    failures = list()
+    results = []
+    failures = []
     for _id in ids:
         try:
             results.append((_id, func(_id)))

@@ -25,12 +25,10 @@ OVERRIDE_PASSWORD_ENV_KEY = (
     "REDIS_SERVICE_PASSWORD",
 )
 
-OVERRIDE_HOST = first(filter(None, map(getenv, OVERRIDE_HOST_ENV_KEY)))
-if OVERRIDE_HOST:
+if OVERRIDE_HOST := first(filter(None, map(getenv, OVERRIDE_HOST_ENV_KEY))):
     log.info(f"Using override redis host {OVERRIDE_HOST}")
 
-OVERRIDE_PORT = first(filter(None, map(getenv, OVERRIDE_PORT_ENV_KEY)))
-if OVERRIDE_PORT:
+if OVERRIDE_PORT := first(filter(None, map(getenv, OVERRIDE_PORT_ENV_KEY))):
     log.info(f"Using override redis port {OVERRIDE_PORT}")
 
 OVERRIDE_PASSWORD = first(filter(None, map(getenv, OVERRIDE_PASSWORD_ENV_KEY)))
@@ -56,8 +54,7 @@ class RedisManager(object):
             if port:
                 alias_config["port"] = port
 
-            password = OVERRIDE_PASSWORD or alias_config.get("password", None)
-            if password:
+            if password := OVERRIDE_PASSWORD or alias_config.get("password", None):
                 alias_config["password"] = password
 
             if not port or not host:
@@ -87,10 +84,7 @@ class RedisManager(object):
         else:
             connections = r.connection_pool._available_connections
 
-        if not connections:
-            return None
-
-        return connections[0].host
+        return connections[0].host if connections else None
 
 
 redman = RedisManager(config.get("hosts.redis"))

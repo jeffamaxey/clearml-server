@@ -558,7 +558,7 @@ def delete(call: APICall, company_id, request: ModelsDeleteManyRequest):
     )
 
     if results:
-        projects = set(model.project for _, (_, model) in results)
+        projects = {model.project for _, (_, model) in results}
         _reset_cached_tags(company_id, projects=list(projects))
 
     call.result.data_model = BatchResponse(
@@ -620,21 +620,21 @@ def make_public(call: APICall, company_id, request: MakePublicRequest):
 
 @endpoint("models.move", request_data_model=MoveRequest)
 def move(call: APICall, company_id: str, request: MoveRequest):
-    if not (request.project or request.project_name):
+    if request.project or request.project_name:
+        return {
+            "project_id": project_bll.move_under_project(
+                entity_cls=Model,
+                user=call.identity.user,
+                company=company_id,
+                ids=request.ids,
+                project=request.project,
+                project_name=request.project_name,
+            )
+        }
+    else:
         raise errors.bad_request.MissingRequiredFields(
             "project or project_name is required"
         )
-
-    return {
-        "project_id": project_bll.move_under_project(
-            entity_cls=Model,
-            user=call.identity.user,
-            company=company_id,
-            ids=request.ids,
-            project=request.project,
-            project_name=request.project_name,
-        )
-    }
 
 
 @endpoint("models.add_or_update_metadata", min_version="2.13")

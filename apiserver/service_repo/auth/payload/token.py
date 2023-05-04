@@ -77,7 +77,7 @@ class Token(Payload):
                 raise errors.unauthorized.InvalidToken('token missing identity')
             return token
         except Exception as e:
-            raise errors.unauthorized.InvalidToken('failed parsing token, %s' % e.args[0])
+            raise errors.unauthorized.InvalidToken(f'failed parsing token, {e.args[0]}')
 
     @classmethod
     def create_encoded_token(cls, identity, expiration_sec=None, entities=None, **extra_payload):

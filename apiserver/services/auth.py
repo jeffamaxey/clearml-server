@@ -138,13 +138,14 @@ def revoke_credentials(call: APICall, _, __):
         query = dict(
             id=identity.user, company=identity.company, credentials__key=access_key
         )
-        updated = User.objects(**query).update_one(pull__credentials__key=access_key)
-        if not updated:
+        if updated := User.objects(**query).update_one(
+            pull__credentials__key=access_key
+        ):
+            call.result.data_model = RevokeCredentialsResponse(revoked=updated)
+        else:
             raise errors.bad_request.InvalidUser(
                 "invalid user or invalid access key", **query
             )
-
-        call.result.data_model = RevokeCredentialsResponse(revoked=updated)
 
 
 @endpoint("auth.get_credentials", response_data_model=GetCredentialsResponse)
@@ -153,22 +154,21 @@ def get_credentials(call: APICall, _, __):
 
     with translate_errors_context():
         query = dict(id=identity.user, company=identity.company)
-        user = User.objects(**query).first()
-        if not user:
+        if user := User.objects(**query).first():
+            # we return ONLY the key IDs, never the secrets (want a secret? create new credentials)
+            call.result.data_model = GetCredentialsResponse(
+                credentials=[
+                    CredentialsResponse(
+                        access_key=c.key,
+                        last_used=c.last_used,
+                        label=c.label,
+                        last_used_from=c.last_used_from,
+                    )
+                    for c in user.credentials
+                ]
+            )
+        else:
             raise errors.bad_request.InvalidUserId(**query)
-
-        # we return ONLY the key IDs, never the secrets (want a secret? create new credentials)
-        call.result.data_model = GetCredentialsResponse(
-            credentials=[
-                CredentialsResponse(
-                    access_key=c.key,
-                    last_used=c.last_used,
-                    label=c.label,
-                    last_used_from=c.last_used_from,
-                )
-                for c in user.credentials
-            ]
-        )
 
 
 @endpoint(
@@ -210,8 +210,7 @@ def fixed_users_mode(call: APICall, *_, **__):
         "guest": {"enabled": FixedUser.guest_enabled()},
         "server_errors": server_errors,
     }
-    guest_user = FixedUser.get_guest_user()
-    if guest_user:
+    if guest_user := FixedUser.get_guest_user():
         data["guest"]["name"] = guest_user.name
         data["guest"]["username"] = guest_user.username
         data["guest"]["password"] = guest_user.password
